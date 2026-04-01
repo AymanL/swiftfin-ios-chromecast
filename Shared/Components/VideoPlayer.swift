@@ -10,6 +10,10 @@ import Defaults
 import Factory
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
 struct VideoPlayer: View {
 
     @Environment(\.presentationControllerShouldDismiss)
@@ -68,6 +72,11 @@ struct VideoPlayer: View {
             manager.proxy = proxy
             manager.start()
         }
+        #if os(iOS)
+        .onDisappear {
+            GoogleCastSessionCoordinator.shared.endCastSessionWhenDismissingPlayer()
+        }
+        #endif
     }
 
     var body: some View {

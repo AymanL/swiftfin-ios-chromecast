@@ -8,6 +8,7 @@
 
 import Defaults
 import SwiftUI
+import UIKit
 
 // TODO: ensure changes on playback item change
 
@@ -87,29 +88,41 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
 
         @ViewBuilder
         private var compactView: some View {
-            Menu(
-                L10n.menu,
-                systemImage: "ellipsis.circle"
-            ) {
-                ForEach(
-                    barActionButtons,
-                    content: view(for:)
-                )
-                .environment(\.isInMenu, true)
+            HStack(spacing: 0) {
+                if UIDevice.isPhone {
+                    CastToolbarButton()
+                        .frame(width: 44, height: 44)
+                }
 
-                Divider()
+                Menu(
+                    L10n.menu,
+                    systemImage: "ellipsis.circle"
+                ) {
+                    ForEach(
+                        barActionButtons,
+                        content: view(for:)
+                    )
+                    .environment(\.isInMenu, true)
 
-                ForEach(
-                    menuActionButtons,
-                    content: view(for:)
-                )
-                .environment(\.isInMenu, true)
+                    Divider()
+
+                    ForEach(
+                        menuActionButtons,
+                        content: view(for:)
+                    )
+                    .environment(\.isInMenu, true)
+                }
             }
         }
 
         @ViewBuilder
         private var regularView: some View {
             HStack(spacing: 0) {
+                if UIDevice.isPhone {
+                    CastToolbarButton()
+                        .frame(width: 44, height: 44)
+                }
+
                 ForEach(
                     barActionButtons,
                     content: view(for:)

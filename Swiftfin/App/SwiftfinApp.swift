@@ -82,6 +82,7 @@ struct SwiftfinApp: App {
                 PreferencesView {
                     RootView()
                         .supportedOrientations(.portrait)
+                        .environmentObject(GoogleCastSessionCoordinator.shared)
                 }
             }
             .ignoresSafeArea()
