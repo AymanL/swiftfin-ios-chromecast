@@ -74,6 +74,8 @@ struct VideoPlayer: View {
         }
         #if os(iOS)
         .onDisappear {
+            // While Cast is active, keep the session so the TV can keep playing (stop via Google Cast UI).
+            guard !GoogleCastSessionCoordinator.shared.isCastSessionActive else { return }
             GoogleCastSessionCoordinator.shared.endCastSessionWhenDismissingPlayer()
         }
         #endif
@@ -107,6 +109,14 @@ struct VideoPlayer: View {
                 let scrubbedSeconds = containerState.scrubbedSeconds.value
                 manager.seconds = scrubbedSeconds
                 proxy.setSeconds(scrubbedSeconds)
+
+                #if os(iOS)
+                Task {
+                    await GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(
+                        positionSeconds: scrubbedSeconds.seconds
+                    )
+                }
+                #endif
             }
             .backport
             .onChange(of: subtitleOffset) { _, newValue in
@@ -131,24 +141,36 @@ struct VideoPlayer: View {
 
                 // TODO: move to container view
                 containerState.scrubbedSeconds.value = newItem?.baseItem.startSeconds ?? .zero
-            }
-            .onReceive(manager.$state) { newState in
-                if newState == .stopped, !isBeingDismissedByTransition {
-                    router.dismiss()
-                }
-            }
 
-            .alert(
-                L10n.error,
-                isPresented: .constant(manager.error != nil)
-            ) {
-                Button(L10n.close, role: .cancel) {
-                    Container.shared.mediaPlayerManager.reset()
-                    router.dismiss()
+                #if os(iOS)
+                if GoogleCastSessionCoordinator.shared.isCastSessionActive {
+                    GoogleCastSessionCoordinator.shared.queueChromecastLoad(playbackItem: newItem)
                 }
-            } message: {
-                // TODO: localize
-                Text("Unable to load this item.")
+                #endif
             }
+        #if os(iOS)
+            .onReceive(GoogleCastSessionCoordinator.shared.$isCastSessionActive) { isActive in
+                guard isActive else { return }
+                GoogleCastSessionCoordinator.shared.queueChromecastLoad(playbackItem: manager.playbackItem)
+            }
+        #endif
+            .onReceive(manager.$state) { newState in
+                    if newState == .stopped, !isBeingDismissedByTransition {
+                        router.dismiss()
+                    }
+                }
+
+                .alert(
+                    L10n.error,
+                    isPresented: .constant(manager.error != nil)
+                ) {
+                    Button(L10n.close, role: .cancel) {
+                        Container.shared.mediaPlayerManager.reset()
+                        router.dismiss()
+                    }
+                } message: {
+                    // TODO: localize
+                    Text("Unable to load this item.")
+                }
     }
 }

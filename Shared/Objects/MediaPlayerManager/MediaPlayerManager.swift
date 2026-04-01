@@ -49,6 +49,12 @@ import StatefulMacros
 @Stateful
 final class MediaPlayerManager: ViewModel {
 
+    // MARK: - Chromecast (iOS sender hooks; set by `GoogleCastSessionCoordinator`)
+
+    /// When non-nil and returns true, play/pause routes to Chromecast; local proxy stays paused to avoid dual playback.
+    static var chromecastRoutesPlaybackControls: (@MainActor () -> Bool)?
+    static var chromecastMirrorPlaybackRequest: (@MainActor (PlaybackRequestStatus) async -> Void)?
+
     @CasePathable
     enum Action {
         case ended
@@ -280,6 +286,20 @@ final class MediaPlayerManager: ViewModel {
     private func set(_ status: PlaybackRequestStatus) {
         if self.playbackRequestStatus != status {
             self.playbackRequestStatus = status
+
+            if let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() {
+                Task {
+                    await Self.chromecastMirrorPlaybackRequest?(status)
+                }
+                switch status {
+                case .paused:
+                    proxy?.pause()
+                case .playing:
+                    // TV resumes via `Unpause`; keep local VLC paused so the phone is not a second player.
+                    proxy?.pause()
+                }
+                return
+            }
 
             switch status {
             case .paused:
