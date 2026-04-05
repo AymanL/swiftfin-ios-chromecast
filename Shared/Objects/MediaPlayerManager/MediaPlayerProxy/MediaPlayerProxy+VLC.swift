@@ -199,33 +199,14 @@ extension VLCMediaPlayerProxy {
                             manager.error(ErrorMessage("VLC player is unable to perform playback"))
                         case .playing:
                             manager.proxy?.isBuffering.value = false
-                            if let shouldRoute = MediaPlayerManager.chromecastRoutesPlaybackControls,
-                               shouldRoute()
-                            {
-                                // When Cast is active, the receiver drives playback state.
-                                // Local VLC transitions (e.g. due to pauseLocalPlaybackWhileChromecastPlays) must not
-                                // mirror back `Play/Pause` to the receiver.
-                                ChromecastNDJSONDebugLogger.log(
-                                    hypothesisId: "N",
-                                    location: "MediaPlayerProxy+VLC.onStateUpdated",
-                                    message: "Ignoring local VLC .playing while Cast routes control",
-                                    data: [:]
-                                )
-                            } else {
+                            let routesChromecastControls = MediaPlayerManager.chromecastRoutesPlaybackControls?() ?? false
+                            // When Cast is active, the receiver drives playback state; do not mirror Play to the receiver.
+                            if !routesChromecastControls {
                                 manager.setPlaybackRequestStatus(status: .playing)
                             }
                         case .paused:
-                            if let shouldRoute = MediaPlayerManager.chromecastRoutesPlaybackControls,
-                               shouldRoute()
-                            {
-                                // Cast drives playback; ignore local VLC pause state to prevent unintended mirroring.
-                                ChromecastNDJSONDebugLogger.log(
-                                    hypothesisId: "N",
-                                    location: "MediaPlayerProxy+VLC.onStateUpdated",
-                                    message: "Ignoring local VLC .paused while Cast routes control",
-                                    data: [:]
-                                )
-                            } else {
+                            let routesChromecastControls = MediaPlayerManager.chromecastRoutesPlaybackControls?() ?? false
+                            if !routesChromecastControls {
                                 manager.setPlaybackRequestStatus(status: .paused)
                             }
                         }

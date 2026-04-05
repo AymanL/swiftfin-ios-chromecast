@@ -28,18 +28,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         let receiverAppID: String = useUnstable ? JellyfinCastReceiverID.unstable : JellyfinCastReceiverID.stable
 
-        // #region agent log: Cast receiver selection
-        ChromecastNDJSONDebugLogger.log(
-            hypothesisId: "E",
-            location: "AppDelegate.didFinishLaunchingWithOptions",
-            message: "Cast receiver app id chosen",
-            data: [
-                "useUnstableReceiver": useUnstable,
-                "receiverAppID": receiverAppID
-            ]
-        )
-        // #endregion
-
         let discoveryCriteria = GCKDiscoveryCriteria(applicationID: receiverAppID)
         let options = GCKCastOptions(discoveryCriteria: discoveryCriteria)
         GCKCastContext.setSharedInstanceWith(options)

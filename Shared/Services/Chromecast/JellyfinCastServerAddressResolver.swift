@@ -21,34 +21,12 @@ enum JellyfinCastServerAddressResolver {
         let absolute = base.absoluteString.trimmingSuffix("/")
 
         guard let host = base.host else {
-            // #region agent log: Cast URL server base host missing
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "D",
-                location: "JellyfinCastServerAddressResolver.serverURLStringForChromecast",
-                message: "Cast URL: missing base host, using absolute as-is",
-                data: [
-                    "baseURL": absolute
-                ]
-            )
-            // #endregion
             return absolute
         }
 
         let loopback = isLoopbackHost(host)
 
         if !loopback {
-            // #region agent log: Cast URL non-loopback
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "D",
-                location: "JellyfinCastServerAddressResolver.serverURLStringForChromecast",
-                message: "Cast URL: using non-loopback base",
-                data: [
-                    "baseHost": host,
-                    "isLoopback": loopback,
-                    "resolvedURL": absolute
-                ]
-            )
-            // #endregion
             return absolute
         }
 
@@ -63,20 +41,6 @@ enum JellyfinCastServerAddressResolver {
         }
 
         let resolved = local.trimmingSuffix("/")
-
-        // #region agent log: Cast URL loopback replaced
-        ChromecastNDJSONDebugLogger.log(
-            hypothesisId: "D",
-            location: "JellyfinCastServerAddressResolver.serverURLStringForChromecast",
-            message: "Cast URL: loopback replaced with Jellyfin LocalAddress",
-            data: [
-                "baseHost": host,
-                "isLoopback": loopback,
-                "localHost": URL(string: resolved)?.host ?? "",
-                "resolvedURL": resolved
-            ]
-        )
-        // #endregion
         return resolved
     }
 

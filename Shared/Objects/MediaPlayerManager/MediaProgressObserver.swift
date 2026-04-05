@@ -95,36 +95,6 @@ class MediaProgressObserver: ViewModel, MediaPlayerObserver {
         switch action {
         case .stop:
             if let item {
-                // #region agent log: manager stop action snapshot
-                do {
-                    let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
-                    if !FileManager.default.fileExists(atPath: logPath) {
-                        FileManager.default.createFile(atPath: logPath, contents: nil)
-                    }
-                    let payload: [String: Any] = [
-                        "sessionId": "071397",
-                        "runId": "pre_fix",
-                        "hypothesisId": "H4",
-                        "location": "MediaProgressObserver.didReceive(action:.stop)",
-                        "message": "Manager stop action fired; capture seconds at report time",
-                        "data": [
-                            "manager.seconds.ticks": NSNumber(value: manager?.seconds.ticks ?? 0),
-                            "item.baseItem.id": item.baseItem.id ?? ""
-                        ],
-                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                    ]
-                    if JSONSerialization.isValidJSONObject(payload),
-                       let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                       let jsonLine = String(data: jsonData, encoding: .utf8),
-                       let lineData = (jsonLine + "\n").data(using: .utf8),
-                       let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
-                    {
-                        try? handle.seekToEnd()
-                        handle.write(lineData)
-                        try? handle.close()
-                    }
-                }
-                // #endregion
                 sendStopReport(for: item, seconds: manager?.seconds)
             }
             timer.stop()
@@ -170,37 +140,6 @@ class MediaProgressObserver: ViewModel, MediaPlayerObserver {
             info.positionTicks = seconds?.ticks
             info.sessionID = item.playSessionID
 
-            // #region agent log: playback stopped report payload
-            do {
-                let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
-                if !FileManager.default.fileExists(atPath: logPath) {
-                    FileManager.default.createFile(atPath: logPath, contents: nil)
-                }
-                let payload: [String: Any] = [
-                    "sessionId": "071397",
-                    "runId": "pre_fix",
-                    "hypothesisId": "H4",
-                    "location": "MediaProgressObserver.sendStopReport",
-                    "message": "About to send PlaybackStopInfo",
-                    "data": [
-                        "positionTicks": NSNumber(value: info.positionTicks ?? 0),
-                        "item.baseItem.id": item.baseItem.id ?? ""
-                    ],
-                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                ]
-                if JSONSerialization.isValidJSONObject(payload),
-                   let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                   let jsonLine = String(data: jsonData, encoding: .utf8),
-                   let lineData = (jsonLine + "\n").data(using: .utf8),
-                   let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
-                {
-                    try? handle.seekToEnd()
-                    handle.write(lineData)
-                    try? handle.close()
-                }
-            }
-            // #endregion
-
             let request = Paths.reportPlaybackStopped(info)
             let _ = try await userSession.client.send(request)
         }
@@ -222,40 +161,6 @@ class MediaProgressObserver: ViewModel, MediaPlayerObserver {
             info.positionTicks = seconds?.ticks
             info.sessionID = item.playSessionID
             info.subtitleStreamIndex = item.selectedSubtitleStreamIndex
-
-            if isPaused {
-                // #region agent log: paused progress report payload
-                do {
-                    let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
-                    if !FileManager.default.fileExists(atPath: logPath) {
-                        FileManager.default.createFile(atPath: logPath, contents: nil)
-                    }
-                    let payload: [String: Any] = [
-                        "sessionId": "071397",
-                        "runId": "pre_fix",
-                        "hypothesisId": "H2",
-                        "location": "MediaProgressObserver.sendProgressReport(isPaused=true)",
-                        "message": "About to send PlaybackProgressInfo (paused)",
-                        "data": [
-                            "positionTicks": NSNumber(value: info.positionTicks ?? 0),
-                            "item.baseItem.id": item.baseItem.id ?? "",
-                            "manager.seconds.isZero": NSNumber(value: (seconds?.ticks ?? 0) == 0)
-                        ],
-                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                    ]
-                    if JSONSerialization.isValidJSONObject(payload),
-                       let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                       let jsonLine = String(data: jsonData, encoding: .utf8),
-                       let lineData = (jsonLine + "\n").data(using: .utf8),
-                       let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
-                    {
-                        try? handle.seekToEnd()
-                        handle.write(lineData)
-                        try? handle.close()
-                    }
-                }
-                // #endregion
-            }
 
             let request = Paths.reportPlaybackProgress(info)
             let _ = try await userSession.client.send(request)

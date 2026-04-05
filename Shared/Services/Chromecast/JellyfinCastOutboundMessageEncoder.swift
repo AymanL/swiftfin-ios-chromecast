@@ -91,21 +91,6 @@ enum JellyfinCastOutboundMessageEncoder {
             "IsFolder": item.isFolder ?? false,
         ]
 
-        // #region agent log: PlayNow item stub media-type presence
-        ChromecastNDJSONDebugLogger.log(
-            hypothesisId: "K",
-            location: "JellyfinCastOutboundMessageEncoder.itemStubDictionary",
-            message: "Building PlayNow item stub",
-            data: [
-                "stubItemId": id,
-                "itemTypeRaw": item.type?.rawValue ?? "",
-                "itemMediaTypeRaw": item.mediaType?.rawValue ?? "",
-                "hasType": item.type != nil,
-                "hasMediaType": item.mediaType != nil
-            ]
-        )
-        // #endregion
-
         if let type = item.type {
             dict["Type"] = type.rawValue
         }

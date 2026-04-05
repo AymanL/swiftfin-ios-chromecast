@@ -143,33 +143,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
 
     /// Called when `playbackItem` changes or Cast becomes active (Phase 3 LOAD).
     func queueChromecastLoad(playbackItem: MediaPlayerItem?) {
-        // #region agent log: queue pending PlayNow context
-        if let playbackItem {
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "F",
-                location: "GoogleCastSessionCoordinator.queueChromecastLoad",
-                message: "Pending Chromecast playback item set",
-                data: [
-                    "baseItemID": playbackItem.baseItem.id ?? "",
-                    "playSessionID": playbackItem.playSessionID,
-                    "mediaSourceID": playbackItem.mediaSource.id ?? "",
-                    "mediaSourceHasTranscodingURL": playbackItem.mediaSource.transcodingURL != nil,
-                    "selectedAudioStreamIndex": playbackItem.selectedAudioStreamIndex ?? -1,
-                    "selectedSubtitleStreamIndex": playbackItem.selectedSubtitleStreamIndex ?? -1,
-                    "audioStreamsCount": playbackItem.audioStreams.count,
-                    "subtitleStreamsCount": playbackItem.subtitleStreams.count,
-                    "videoStreamsCount": playbackItem.videoStreams.count
-                ]
-            )
-        } else {
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "F",
-                location: "GoogleCastSessionCoordinator.queueChromecastLoad",
-                message: "Pending Chromecast playback item set to nil"
-            )
-        }
-        // #endregion
-
         pendingChromecastPlaybackItem = playbackItem
         Task { await flushChromecastMessagesIfReady() }
     }
@@ -203,113 +176,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
               let parsed = JellyfinCastInboundMessage.parse(jsonString: message)
         else { return }
 
-        // #region agent log: Cast inbound type/errors (receiver -> phone)
-        switch parsed {
-        case .ignored:
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "I",
-                location: "GoogleCastSessionCoordinator.handleConnectSDKInboundText",
-                message: "Ignored inbound ConnectSDK message"
-            )
-        case let .playbackProgress(ticks, paused):
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "I",
-                location: "GoogleCastSessionCoordinator.handleConnectSDKInboundText",
-                message: "Inbound playbackprogress",
-                data: [
-                    "positionTicks": ticks as Any,
-                    "isPaused": paused
-                ]
-            )
-        case let .playStateChange(ticks, paused):
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "I",
-                location: "GoogleCastSessionCoordinator.handleConnectSDKInboundText",
-                message: "Inbound playstatechange",
-                data: [
-                    "positionTicks": ticks as Any,
-                    "isPaused": paused
-                ]
-            )
-        case let .playbackStart(ticks, paused):
-            // Receiver might silently fall back to audio-only; PlayState often contains clues we currently discard.
-            // Log a compact summary of PlayState on `playbackstart` (not on every progress tick).
-            var playStateSummary: [String: Any] = [:]
-            if let data = message.data(using: .utf8),
-               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let dataPayload = root["data"]
-            {
-                let playState = (dataPayload as? [String: Any])?["PlayState"] ?? dataPayload
-                if let dict = playState as? [String: Any] {
-                    playStateSummary["playStateKeysCount"] = dict.keys.count as Any
-                    // Include all keys (12ish keys) so we can see exactly what the receiver reports.
-                    playStateSummary["playStateKeys"] = Array(dict.keys)
-
-                    // Include only primitive values to keep JSON payload small and serializable.
-                    var primitiveValues: [String: Any] = [:]
-                    for (k, v) in dict {
-                        if v is NSNumber || v is Bool || v is String {
-                            primitiveValues[k] = v
-                        }
-                    }
-                    playStateSummary["playStatePrimitiveValues"] = primitiveValues
-
-                    let candidateKeys = [
-                        "MediaType", "mediaType",
-                        "VideoCodec", "videoCodec",
-                        "VideoStreamIndex", "videoStreamIndex",
-                        "AudioCodec", "audioCodec",
-                        "AudioStreamIndex", "audioStreamIndex",
-                        "TranscodingType", "transcodingType",
-                        "Container", "container",
-                        "IsVideo", "isVideo",
-                        "IsAudio", "isAudio"
-                    ]
-                    for key in candidateKeys {
-                        if let v = dict[key] {
-                            playStateSummary[key] = v
-                        }
-                    }
-                }
-            }
-
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "J",
-                location: "GoogleCastSessionCoordinator.handleConnectSDKInboundText",
-                message: "Inbound playbackstart (PlayState summary)",
-                data: [
-                    "positionTicks": ticks as Any,
-                    "isPaused": paused,
-                    "playStateSummary": playStateSummary
-                ]
-            )
-        case .playbackStop:
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "I",
-                location: "GoogleCastSessionCoordinator.handleConnectSDKInboundText",
-                message: "Inbound playbackstop"
-            )
-        case let .playbackError(codeOrMessage):
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "I",
-                location: "GoogleCastSessionCoordinator.handleConnectSDKInboundText",
-                message: "Inbound playbackerror",
-                data: [
-                    "codeOrMessage": codeOrMessage ?? ""
-                ]
-            )
-        case let .connectionError(detail):
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "I",
-                location: "GoogleCastSessionCoordinator.handleConnectSDKInboundText",
-                message: "Inbound connectionerror",
-                data: [
-                    "detail": detail ?? ""
-                ]
-            )
-        }
-        // #endregion
-
         switch parsed {
         case .ignored:
             break
@@ -329,39 +195,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
                 Container.shared.mediaPlayerManager().applyChromecastInboundPlaybackState(positionTicks: nil, isPaused: paused)
             }
         case .playbackStop:
-            // #region agent log: cast stop position evidence
-            do {
-                let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
-                if !FileManager.default.fileExists(atPath: logPath) {
-                    FileManager.default.createFile(atPath: logPath, contents: nil)
-                }
-                let manager = Container.shared.mediaPlayerManager()
-                let lastTicks = lastChromecastInboundPositionTicks.map { NSNumber(value: $0) } ?? NSNull()
-                let currentSecondsTicks = NSNumber(value: manager.seconds.ticks)
-                let payload: [String: Any] = [
-                    "sessionId": "071397",
-                    "runId": "pre_fix",
-                    "hypothesisId": "H1",
-                    "location": "GoogleCastSessionCoordinator.handleConnectSDKInboundText(playbackStop)",
-                    "message": "Received playbackstop from TV; compare last inbound ticks vs manager.seconds",
-                    "data": [
-                        "lastChromecastInboundPositionTicks": lastTicks,
-                        "manager.seconds.ticks": currentSecondsTicks
-                    ],
-                    "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                ]
-                if JSONSerialization.isValidJSONObject(payload),
-                   let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                   let jsonLine = String(data: jsonData, encoding: .utf8),
-                   let lineData = (jsonLine + "\n").data(using: .utf8),
-                   let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
-                {
-                    try? handle.seekToEnd()
-                    handle.write(lineData)
-                    try? handle.close()
-                }
-            }
-            // #endregion
             Container.shared.mediaPlayerManager().applyChromecastInboundPlaybackState(positionTicks: nil, isPaused: true)
         case let .playbackError(code):
             sessionErrorMessage = Self.userFacingChromecastPlaybackError(code)
@@ -455,49 +288,8 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
             let audioIndex = item.chromecastAudioStreamIndexForPlaybackInfo
             let subtitleIndex = item.chromecastSubtitleStreamIndexForPlaybackInfo
 
-            // Capture local playback truth at the moment we send PlayNow (to validate startPositionTicks correctness).
             let manager = Container.shared.mediaPlayerManager()
             let localSecondsTicks = manager.seconds.ticks
-            let baseItemUserDataStartTicks = item.baseItem.userData?.playbackPositionTicks ?? 0
-            let hasBaseItemUserDataStartTicks = item.baseItem.userData?.playbackPositionTicks != nil
-            let deltaTicks = localSecondsTicks - baseItemUserDataStartTicks
-            let localPlaybackStatus = switch manager.playbackRequestStatus {
-            case .playing: "playing"
-            case .paused: "paused"
-            }
-
-            // #region agent log: PlayNow payload indices + server URL
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "A",
-                location: "GoogleCastSessionCoordinator.flushChromecastMessagesIfReady",
-                message: "Sending PlayNow to Jellyfin Cast receiver",
-                data: [
-                    "sentIdentifyThisConnection": sentIdentifyThisConnection,
-                    "baseItemID": item.baseItem.id ?? "",
-                    "playSessionID": item.playSessionID,
-                    "mediaSourceID": item.mediaSource.id ?? "",
-                    "mediaSourceHasTranscodingURL": item.mediaSource.transcodingURL != nil,
-                    "startPositionTicksToSend": localSecondsTicks,
-                    "baseItemUserDataStartPositionTicks": baseItemUserDataStartTicks,
-                    "hasBaseItemUserDataStartPositionTicks": hasBaseItemUserDataStartTicks,
-                    "localSecondsTicks": localSecondsTicks,
-                    "localPlaybackRequestStatus": localPlaybackStatus,
-                    "startPositionTicksDeltaTicks": deltaTicks,
-                    "selectedAudioStreamIndex": item.selectedAudioStreamIndex ?? -1,
-                    "selectedSubtitleStreamIndex": item.selectedSubtitleStreamIndex ?? -1,
-                    "audioStreamIndexForPlaybackInfo": audioIndex,
-                    "subtitleStreamIndexForPlaybackInfo": subtitleIndex,
-                    "audioStreamsCount": item.audioStreams.count,
-                    "audioStreamIndexes": item.audioStreams.map { $0.index ?? -1 },
-                    "videoStreamsCount": item.videoStreams.count,
-                    "videoStreamIndexes": item.videoStreams.map { $0.index ?? -1 },
-                    "subtitleStreamsCount": item.subtitleStreams.count,
-                    "subtitleStreamIndexes": item.subtitleStreams.map { $0.index ?? -1 },
-                    "serverAddress": context.serverAddress,
-                    "serverId": context.serverId
-                ]
-            )
-            // #endregion
 
             let json = try JellyfinCastOutboundMessageEncoder.playNowJSON(
                 baseItem: item.baseItem,
@@ -531,20 +323,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
             case .playing: "Unpause"
             }
 
-            // #region agent log: transport Pause/Unpause
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "L",
-                location: "GoogleCastSessionCoordinator.mirrorPlaybackRequestToChromecast",
-                message: "Sending transport command",
-                data: [
-                    "command": command,
-                    "statusRoutesToCast": routesPlaybackControlsToChromecast,
-                    "lastPlayNowSignaturePresent": lastPlayNowSignature != nil,
-                    "serverId": context.serverId
-                ]
-            )
-            // #endregion
-
             let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: command, context: context)
             try postJSON(json)
         } catch {
@@ -565,19 +343,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         do {
             let context = try await makeSenderContext(castSession: castSession)
 
-            // #region agent log: transport Seek
-            ChromecastNDJSONDebugLogger.log(
-                hypothesisId: "L",
-                location: "GoogleCastSessionCoordinator.sendChromecastSeekWhenControlling",
-                message: "Sending transport Seek",
-                data: [
-                    "positionSeconds": positionSeconds,
-                    "clampedSeconds": clamped,
-                    "serverId": context.serverId
-                ]
-            )
-            // #endregion
-
             let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(
                 command: "Seek",
                 options: ["position": clamped],
@@ -588,13 +353,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     }
 
     private func pauseLocalPlaybackWhileChromecastPlays() {
-        // #region agent log: pause local VLC when TV should drive
-        ChromecastNDJSONDebugLogger.log(
-            hypothesisId: "M",
-            location: "GoogleCastSessionCoordinator.pauseLocalPlaybackWhileChromecastPlays",
-            message: "Pausing local VLC proxy (Cast should drive)"
-        )
-        // #endregion
         Container.shared.mediaPlayerManager().proxy?.pause()
     }
 

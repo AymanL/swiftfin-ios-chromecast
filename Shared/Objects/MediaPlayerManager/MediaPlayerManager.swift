@@ -195,38 +195,6 @@ final class MediaPlayerManager: ViewModel {
             }
         }
         if let paused = isPaused {
-            if paused, positionTicks == nil, playbackRequestStatus != .paused {
-                // #region agent log: cast stop transitions local manager state
-                do {
-                    let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
-                    if !FileManager.default.fileExists(atPath: logPath) {
-                        FileManager.default.createFile(atPath: logPath, contents: nil)
-                    }
-                    let secondsTicks = NSNumber(value: seconds.ticks)
-                    let payload: [String: Any] = [
-                        "sessionId": "071397",
-                        "runId": "pre_fix",
-                        "hypothesisId": "H3",
-                        "location": "MediaPlayerManager.applyChromecastInboundPlaybackState(isPaused=true, positionTicks=nil)",
-                        "message": "Receiver paused via playbackstop path; capture manager seconds at transition to paused",
-                        "data": [
-                            "manager.seconds.ticks": secondsTicks
-                        ],
-                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-                    ]
-                    if JSONSerialization.isValidJSONObject(payload),
-                       let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                       let jsonLine = String(data: jsonData, encoding: .utf8),
-                       let lineData = (jsonLine + "\n").data(using: .utf8),
-                       let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
-                    {
-                        try? handle.seekToEnd()
-                        handle.write(lineData)
-                        try? handle.close()
-                    }
-                }
-                // #endregion
-            }
             let target: PlaybackRequestStatus = paused ? .paused : .playing
             guard playbackRequestStatus != target else { return }
             playbackRequestStatus = target
@@ -254,36 +222,6 @@ final class MediaPlayerManager: ViewModel {
             proxy?.setSeconds(d)
         }
 
-        // #region agent log: cast session end snapshot
-        do {
-            let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
-            if !FileManager.default.fileExists(atPath: logPath) {
-                FileManager.default.createFile(atPath: logPath, contents: nil)
-            }
-            let payload: [String: Any] = [
-                "sessionId": "071397",
-                "runId": "post_fix",
-                "hypothesisId": "H4",
-                "location": "MediaPlayerManager.applyChromecastSessionEndedFromReceiver",
-                "message": "Cast ended from receiver; seconds after optional TV tick apply",
-                "data": [
-                    "lastTVPositionTicks": lastTVPositionTicks.map { NSNumber(value: $0) } ?? NSNull(),
-                    "manager.seconds.ticks": NSNumber(value: seconds.ticks)
-                ],
-                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-            ]
-            if JSONSerialization.isValidJSONObject(payload),
-               let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-               let jsonLine = String(data: jsonData, encoding: .utf8),
-               let lineData = (jsonLine + "\n").data(using: .utf8),
-               let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
-            {
-                try? handle.seekToEnd()
-                handle.write(lineData)
-                try? handle.close()
-            }
-        }
-        // #endregion
         playbackRequestStatus = .paused
         proxy?.pause()
     }
