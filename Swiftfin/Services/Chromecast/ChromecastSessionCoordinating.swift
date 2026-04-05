@@ -23,4 +23,7 @@ protocol ChromecastSessionCoordinating: AnyObject, ObservableObject {
 
     /// End Cast when the video player is dismissed (Phase 2: no LOAD yet; avoid orphan sessions).
     func endCastSessionWhenDismissingPlayer()
+
+    /// End the Cast session from in-player UI while keeping the local player open (Phase 4).
+    func stopCastingFromPlayer()
 }

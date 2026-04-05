@@ -62,6 +62,7 @@ extension MediaInfoSupplement {
         private var fromBeginningButton: some View {
             Button("From Beginning", systemImage: "play.fill") {
                 manager.proxy?.setSeconds(.zero)
+                manager.mirrorChromecastSeekToTargetSecondsIfControlling(0)
                 manager.setPlaybackRequestStatus(status: .playing)
                 containerState.select(supplement: nil)
             }
@@ -113,6 +114,7 @@ extension MediaInfoSupplement {
                 if !item.isLiveStream {
                     Button {
                         manager.proxy?.setSeconds(.zero)
+                        manager.mirrorChromecastSeekToTargetSecondsIfControlling(0)
                         manager.setPlaybackRequestStatus(status: .playing)
                         containerState.select(supplement: nil)
                     } label: {

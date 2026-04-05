@@ -209,13 +209,18 @@ class NowPlayableObserver: ViewModel, MediaPlayerObserver {
             manager?.togglePlayPause()
         case .skipBackward:
             guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
-            manager?.proxy?.jumpBackward(.seconds(event.interval))
+            let delta = Duration.seconds(event.interval)
+            manager?.proxy?.jumpBackward(delta)
+            manager?.mirrorChromecastSeekAfterLocalJump(delta: .zero - delta)
         case .skipForward:
             guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
-            manager?.proxy?.jumpForward(.seconds(event.interval))
+            let delta = Duration.seconds(event.interval)
+            manager?.proxy?.jumpForward(delta)
+            manager?.mirrorChromecastSeekAfterLocalJump(delta: delta)
         case .changePlaybackPosition:
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             manager?.proxy?.setSeconds(Duration.seconds(event.positionTime))
+            manager?.mirrorChromecastSeekToTargetSecondsIfControlling(event.positionTime)
         case .nextTrack:
             guard let nextItem = manager?.queue?.nextItem else { return .commandFailed }
             manager?.playNewItem(provider: nextItem)

@@ -38,6 +38,7 @@ enum JellyfinCastOutboundMessageEncoder {
         mediaSource: MediaSourceInfo,
         audioStreamIndex: Int,
         subtitleStreamIndex: Int,
+        startPositionTicks: Int? = nil,
         context: SenderContext
     ) throws -> String {
         let options = try playOptionsDictionary(
@@ -45,7 +46,8 @@ enum JellyfinCastOutboundMessageEncoder {
             mediaSource: mediaSource,
             fallbackServerId: context.serverId,
             audioStreamIndex: audioStreamIndex,
-            subtitleStreamIndex: subtitleStreamIndex
+            subtitleStreamIndex: subtitleStreamIndex,
+            startPositionTicks: startPositionTicks
         )
         return try jsonString(command: "PlayNow", options: options, context: context)
     }
@@ -55,7 +57,8 @@ enum JellyfinCastOutboundMessageEncoder {
         mediaSource: MediaSourceInfo,
         fallbackServerId: String,
         audioStreamIndex: Int,
-        subtitleStreamIndex: Int
+        subtitleStreamIndex: Int,
+        startPositionTicks: Int? = nil
     ) throws -> [String: Any] {
         guard let itemId = baseItem.id else {
             throw ErrorMessage("Missing item id for Chromecast load.")
@@ -63,7 +66,7 @@ enum JellyfinCastOutboundMessageEncoder {
 
         let stub = try itemStubDictionary(from: baseItem, fallbackServerId: fallbackServerId)
 
-        let startTicks = baseItem.userData?.playbackPositionTicks ?? 0
+        let startTicks = startPositionTicks ?? baseItem.userData?.playbackPositionTicks ?? 0
         let mediaSourceId = mediaSource.id ?? itemId
 
         return [
@@ -87,6 +90,21 @@ enum JellyfinCastOutboundMessageEncoder {
             "Name": item.name ?? "",
             "IsFolder": item.isFolder ?? false,
         ]
+
+        // #region agent log: PlayNow item stub media-type presence
+        ChromecastNDJSONDebugLogger.log(
+            hypothesisId: "K",
+            location: "JellyfinCastOutboundMessageEncoder.itemStubDictionary",
+            message: "Building PlayNow item stub",
+            data: [
+                "stubItemId": id,
+                "itemTypeRaw": item.type?.rawValue ?? "",
+                "itemMediaTypeRaw": item.mediaType?.rawValue ?? "",
+                "hasType": item.type != nil,
+                "hasMediaType": item.mediaType != nil
+            ]
+        )
+        // #endregion
 
         if let type = item.type {
             dict["Type"] = type.rawValue

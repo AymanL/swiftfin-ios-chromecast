@@ -156,11 +156,21 @@ extension VLCMediaPlayerProxy {
                 VLCVideoPlayer(configuration: vlcConfiguration(for: playbackItem))
                     .proxy(proxy)
                     .onSecondsUpdated { newSeconds, info in
-                        if !isScrubbing {
-                            containerState.scrubbedSeconds.value = newSeconds
-                        }
+                        if let shouldRoute = MediaPlayerManager.chromecastRoutesPlaybackControls,
+                           shouldRoute()
+                        {
+                            // Local VLC stays paused while the TV decodes; its time is frozen at handoff.
+                            // Do not overwrite `manager.seconds` — it is driven by Jellyfin Cast inbound progress.
+                            if !isScrubbing {
+                                containerState.scrubbedSeconds.value = manager.seconds
+                            }
+                        } else {
+                            if !isScrubbing {
+                                containerState.scrubbedSeconds.value = newSeconds
+                            }
 
-                        manager.seconds = newSeconds
+                            manager.seconds = newSeconds
+                        }
 
                         if let proxy = manager.proxy as? any VideoMediaPlayerProxy {
                             proxy.videoSize.value = info.videoSize
@@ -189,9 +199,35 @@ extension VLCMediaPlayerProxy {
                             manager.error(ErrorMessage("VLC player is unable to perform playback"))
                         case .playing:
                             manager.proxy?.isBuffering.value = false
-                            manager.setPlaybackRequestStatus(status: .playing)
+                            if let shouldRoute = MediaPlayerManager.chromecastRoutesPlaybackControls,
+                               shouldRoute()
+                            {
+                                // When Cast is active, the receiver drives playback state.
+                                // Local VLC transitions (e.g. due to pauseLocalPlaybackWhileChromecastPlays) must not
+                                // mirror back `Play/Pause` to the receiver.
+                                ChromecastNDJSONDebugLogger.log(
+                                    hypothesisId: "N",
+                                    location: "MediaPlayerProxy+VLC.onStateUpdated",
+                                    message: "Ignoring local VLC .playing while Cast routes control",
+                                    data: [:]
+                                )
+                            } else {
+                                manager.setPlaybackRequestStatus(status: .playing)
+                            }
                         case .paused:
-                            manager.setPlaybackRequestStatus(status: .paused)
+                            if let shouldRoute = MediaPlayerManager.chromecastRoutesPlaybackControls,
+                               shouldRoute()
+                            {
+                                // Cast drives playback; ignore local VLC pause state to prevent unintended mirroring.
+                                ChromecastNDJSONDebugLogger.log(
+                                    hypothesisId: "N",
+                                    location: "MediaPlayerProxy+VLC.onStateUpdated",
+                                    message: "Ignoring local VLC .paused while Cast routes control",
+                                    data: [:]
+                                )
+                            } else {
+                                manager.setPlaybackRequestStatus(status: .paused)
+                            }
                         }
 
                         if let proxy = manager.proxy as? any VideoMediaPlayerProxy {

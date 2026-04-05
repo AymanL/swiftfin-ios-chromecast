@@ -54,6 +54,7 @@ final class MediaPlayerManager: ViewModel {
     /// When non-nil and returns true, play/pause routes to Chromecast; local proxy stays paused to avoid dual playback.
     static var chromecastRoutesPlaybackControls: (@MainActor () -> Bool)?
     static var chromecastMirrorPlaybackRequest: (@MainActor (PlaybackRequestStatus) async -> Void)?
+    static var chromecastMirrorSeekToSeconds: (@MainActor (Double) async -> Void)?
 
     @CasePathable
     enum Action {
@@ -176,6 +177,131 @@ final class MediaPlayerManager: ViewModel {
             if var proxy {
                 proxy.manager = self
             }
+        }
+    }
+
+    // MARK: Chromecast (receiver → UI; seek mirror)
+
+    /// Applies TV-reported state without echoing pause/unpause back to the receiver.
+    @MainActor
+    func applyChromecastInboundPlaybackState(positionTicks: Int?, isPaused: Bool?) {
+        if let ticks = positionTicks {
+            let d = Duration.ticks(ticks)
+            if seconds != d {
+                // Keep the scrubber / timestamps aligned with the TV only. Do not seek the local VLC proxy
+                // while Cast drives playback (it stays paused); repeated `setSeconds` there can yield black
+                // video or audio-only glitches on device even though the TV plays fine.
+                seconds = d
+            }
+        }
+        if let paused = isPaused {
+            if paused, positionTicks == nil, playbackRequestStatus != .paused {
+                // #region agent log: cast stop transitions local manager state
+                do {
+                    let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
+                    if !FileManager.default.fileExists(atPath: logPath) {
+                        FileManager.default.createFile(atPath: logPath, contents: nil)
+                    }
+                    let secondsTicks = NSNumber(value: seconds.ticks)
+                    let payload: [String: Any] = [
+                        "sessionId": "071397",
+                        "runId": "pre_fix",
+                        "hypothesisId": "H3",
+                        "location": "MediaPlayerManager.applyChromecastInboundPlaybackState(isPaused=true, positionTicks=nil)",
+                        "message": "Receiver paused via playbackstop path; capture manager seconds at transition to paused",
+                        "data": [
+                            "manager.seconds.ticks": secondsTicks
+                        ],
+                        "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+                    ]
+                    if JSONSerialization.isValidJSONObject(payload),
+                       let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                       let jsonLine = String(data: jsonData, encoding: .utf8),
+                       let lineData = (jsonLine + "\n").data(using: .utf8),
+                       let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
+                    {
+                        try? handle.seekToEnd()
+                        handle.write(lineData)
+                        try? handle.close()
+                    }
+                }
+                // #endregion
+            }
+            let target: PlaybackRequestStatus = paused ? .paused : .playing
+            guard playbackRequestStatus != target else { return }
+            playbackRequestStatus = target
+            if let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() {
+                proxy?.pause()
+            } else {
+                switch target {
+                case .paused:
+                    proxy?.pause()
+                case .playing:
+                    proxy?.play()
+                }
+            }
+        }
+    }
+
+    /// After Cast ends or the control channel is lost while the TV was driving playback.
+    /// - Parameter lastTVPositionTicks: Last Jellyfin ticks reported by the receiver while casting; aligns local scrubber and VLC before
+    /// resuming on-device playback.
+    @MainActor
+    func applyChromecastSessionEndedFromReceiver(lastTVPositionTicks: Int? = nil) {
+        if let ticks = lastTVPositionTicks {
+            let d = Duration.ticks(ticks)
+            seconds = d
+            proxy?.setSeconds(d)
+        }
+
+        // #region agent log: cast session end snapshot
+        do {
+            let logPath = "/Users/ayman/Documents/GitHub/PlexClone/.cursor/debug-071397.log"
+            if !FileManager.default.fileExists(atPath: logPath) {
+                FileManager.default.createFile(atPath: logPath, contents: nil)
+            }
+            let payload: [String: Any] = [
+                "sessionId": "071397",
+                "runId": "post_fix",
+                "hypothesisId": "H4",
+                "location": "MediaPlayerManager.applyChromecastSessionEndedFromReceiver",
+                "message": "Cast ended from receiver; seconds after optional TV tick apply",
+                "data": [
+                    "lastTVPositionTicks": lastTVPositionTicks.map { NSNumber(value: $0) } ?? NSNull(),
+                    "manager.seconds.ticks": NSNumber(value: seconds.ticks)
+                ],
+                "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+            ]
+            if JSONSerialization.isValidJSONObject(payload),
+               let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+               let jsonLine = String(data: jsonData, encoding: .utf8),
+               let lineData = (jsonLine + "\n").data(using: .utf8),
+               let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
+            {
+                try? handle.seekToEnd()
+                handle.write(lineData)
+                try? handle.close()
+            }
+        }
+        // #endregion
+        playbackRequestStatus = .paused
+        proxy?.pause()
+    }
+
+    @MainActor
+    func mirrorChromecastSeekToTargetSecondsIfControlling(_ positionSeconds: Double) {
+        guard let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() else { return }
+        Task {
+            await Self.chromecastMirrorSeekToSeconds?(positionSeconds)
+        }
+    }
+
+    @MainActor
+    func mirrorChromecastSeekAfterLocalJump(delta: Duration) {
+        guard let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() else { return }
+        let target = max(.zero, seconds + delta).seconds
+        Task {
+            await Self.chromecastMirrorSeekToSeconds?(target)
         }
     }
 

@@ -6,6 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import Combine
 import Defaults
 import JellyfinAPI
 import SwiftUI
@@ -156,6 +157,16 @@ extension VideoPlayer.PlaybackControls {
                     SplitTimeStamp()
                         .offset(y: isScrubbing ? 5 : 0)
                         .frame(maxWidth: isScrubbing ? nil : max(0, sliderSize.width - EdgeInsets.edgePadding * 2))
+                }
+            }
+            .onReceive(
+                manager.secondsBox.$value.receive(on: DispatchQueue.main)
+            ) { newSeconds in
+                guard MediaPlayerManager.chromecastRoutesPlaybackControls?() == true,
+                      !isScrubbing
+                else { return }
+                if scrubbedSecondsBox.value != newSeconds {
+                    scrubbedSecondsBox.value = newSeconds
                 }
             }
             .frame(maxWidth: .infinity)

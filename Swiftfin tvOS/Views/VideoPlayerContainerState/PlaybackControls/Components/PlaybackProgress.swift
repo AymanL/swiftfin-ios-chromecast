@@ -6,6 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import Combine
 import Defaults
 import JellyfinAPI
 import SwiftUI
@@ -105,6 +106,16 @@ extension VideoPlayer.PlaybackControls {
                         .trackingSize($sliderSize)
 
                     SplitTimeStamp()
+                }
+            }
+            .onReceive(
+                manager.secondsBox.$value.receive(on: DispatchQueue.main)
+            ) { newSeconds in
+                guard MediaPlayerManager.chromecastRoutesPlaybackControls?() == true,
+                      !isScrubbing
+                else { return }
+                if scrubbedSecondsBox.value != newSeconds {
+                    scrubbedSecondsBox.value = newSeconds
                 }
             }
             .focused($isFocused)

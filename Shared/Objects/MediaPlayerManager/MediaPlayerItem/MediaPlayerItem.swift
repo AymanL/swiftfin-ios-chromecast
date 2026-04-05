@@ -92,6 +92,24 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
         self.subtitleStreams = subtitleStreams
         self.videoStreams = videoStreams
 
+        // #region agent log: Chromecast stream list shape (pre-PlayNow)
+        ChromecastNDJSONDebugLogger.log(
+            hypothesisId: "B",
+            location: "MediaPlayerItem.init",
+            message: "Prepared Chromecast stream lists (adjusted indices)",
+            data: [
+                "mediaSourceHasTranscodingURL": mediaSource.transcodingURL != nil,
+                "defaultAudioStreamIndex": mediaSource.defaultAudioStreamIndex ?? -1,
+                "defaultSubtitleStreamIndex": mediaSource.defaultSubtitleStreamIndex ?? -1,
+                "audioStreamsCount": audioStreams.count,
+                "subtitleStreamsCount": subtitleStreams.count,
+                "videoStreamsCount": videoStreams.count,
+                "audioStreamIndexes": audioStreams.map { $0.index ?? -1 },
+                "videoStreamIndexes": videoStreams.map { $0.index ?? -1 }
+            ]
+        )
+        // #endregion
+
         super.init()
 
         selectedAudioStreamIndex = mediaSource.defaultAudioStreamIndex ?? -1

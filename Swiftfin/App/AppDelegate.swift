@@ -20,14 +20,25 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        let receiverAppID: String = {
-            #if DEBUG
-            if Defaults[.useUnstableJellyfinChromecastReceiver] {
-                return JellyfinCastReceiverID.unstable
-            }
-            #endif
-            return JellyfinCastReceiverID.stable
-        }()
+        #if DEBUG
+        let useUnstable = Defaults[.useUnstableJellyfinChromecastReceiver]
+        #else
+        let useUnstable = false
+        #endif
+
+        let receiverAppID: String = useUnstable ? JellyfinCastReceiverID.unstable : JellyfinCastReceiverID.stable
+
+        // #region agent log: Cast receiver selection
+        ChromecastNDJSONDebugLogger.log(
+            hypothesisId: "E",
+            location: "AppDelegate.didFinishLaunchingWithOptions",
+            message: "Cast receiver app id chosen",
+            data: [
+                "useUnstableReceiver": useUnstable,
+                "receiverAppID": receiverAppID
+            ]
+        )
+        // #endregion
 
         let discoveryCriteria = GCKDiscoveryCriteria(applicationID: receiverAppID)
         let options = GCKCastOptions(discoveryCriteria: discoveryCriteria)

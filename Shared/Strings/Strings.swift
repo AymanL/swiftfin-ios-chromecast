@@ -1436,6 +1436,8 @@ internal enum L10n {
   internal static let status = L10n.tr("Localizable", "status", fallback: "Status")
   /// Stop
   internal static let stop = L10n.tr("Localizable", "stop", fallback: "Stop")
+  /// Stop casting
+  internal static let stopChromecastCasting = L10n.tr("Localizable", "stopChromecastCasting", fallback: "Stop casting")
   /// Story arc
   internal static let storyArc = L10n.tr("Localizable", "storyArc", fallback: "Story arc")
   /// The stream count exceeds the allowed limit

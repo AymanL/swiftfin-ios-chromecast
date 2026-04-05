@@ -26,6 +26,9 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         @EnvironmentObject
         private var manager: MediaPlayerManager
 
+        @ObservedObject
+        private var castCoordinator = GoogleCastSessionCoordinator.shared
+
         private func filteredActionButtons(_ rawButtons: [VideoPlayerActionButton]) -> [VideoPlayerActionButton] {
             var filteredButtons = rawButtons
 
@@ -87,9 +90,25 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         }
 
         @ViewBuilder
+        private var stopCastingToolbarButton: some View {
+            if castCoordinator.routesPlaybackControlsToChromecast {
+                Button {
+                    castCoordinator.stopCastingFromPlayer()
+                } label: {
+                    Image(systemName: "airplayaudio.circle.badge.xmark")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.primary)
+                }
+                .accessibilityLabel(L10n.stopChromecastCasting)
+                .frame(width: 44, height: 44)
+            }
+        }
+
+        @ViewBuilder
         private var compactView: some View {
             HStack(spacing: 0) {
                 if UIDevice.isPhone {
+                    stopCastingToolbarButton
                     CastToolbarButton()
                         .frame(width: 44, height: 44)
                 }
@@ -119,6 +138,7 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         private var regularView: some View {
             HStack(spacing: 0) {
                 if UIDevice.isPhone {
+                    stopCastingToolbarButton
                     CastToolbarButton()
                         .frame(width: 44, height: 44)
                 }
