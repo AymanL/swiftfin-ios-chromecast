@@ -22,6 +22,17 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         receiverName: "Living Room TV"
     )
 
+    /// Context without optional root keys (`serverVersion`, `receiverName`).
+    private let minimalContext = JellyfinCastOutboundMessageEncoder.SenderContext(
+        userId: "user-1",
+        deviceId: "device-1",
+        accessToken: "token-1",
+        serverAddress: "https://jelly.example",
+        serverId: "server-1",
+        serverVersion: nil,
+        receiverName: nil
+    )
+
     func testTransportCommandPause_includesCommandAndEmptyOptions() throws {
         let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: "Pause", context: sampleContext)
         let root = try decodeObject(json)
@@ -40,6 +51,14 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         XCTAssertEqual(root["command"] as? String, "Seek")
         let options = try XCTUnwrap(root["options"] as? [String: Any])
         XCTAssertEqual(options["position"] as? Double, 125.5)
+    }
+
+    func testTransportCommandUnpause_includesCommandAndEmptyOptions() throws {
+        let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: "Unpause", context: sampleContext)
+        let root = try decodeObject(json)
+        XCTAssertEqual(root["command"] as? String, "Unpause")
+        let options = try XCTUnwrap(root["options"] as? [String: Any])
+        XCTAssertTrue(options.isEmpty)
     }
 
     func testIdentifyJSON_sortedKeysAndShape() throws {
@@ -62,6 +81,14 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
             json.hasPrefix("{\"accessToken\":"),
             "JSONSerialization sortedKeys should emit accessToken first at the root."
         )
+    }
+
+    func testIdentifyJSON_omitsOptionalServerVersionAndReceiverName() throws {
+        let json = try JellyfinCastOutboundMessageEncoder.identifyJSON(context: minimalContext)
+        let root = try decodeObject(json)
+        XCTAssertNil(root["serverVersion"])
+        XCTAssertNil(root["receiverName"])
+        XCTAssertEqual(root.count, 7)
     }
 
     func testPlayNowJSON_itemStubAndPlayOptions() throws {
@@ -104,6 +131,84 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         XCTAssertEqual(stub["IsFolder"] as? Bool, false)
         XCTAssertEqual(stub["Type"] as? String, BaseItemKind.movie.rawValue)
         XCTAssertEqual(stub["MediaType"] as? String, MediaType.video.rawValue)
+    }
+
+    func testPlayNowJSON_explicitStartPositionTicksOverridesUserData() throws {
+        var base = BaseItemDto()
+        base.id = "item-1"
+        base.serverID = "server-1"
+        base.name = "Override"
+        base.type = .movie
+        base.mediaType = .video
+        base.userData = UserItemDataDto(playbackPositionTicks: 50_000_000)
+
+        var source = MediaSourceInfo()
+        source.id = "ms-1"
+
+        let json = try JellyfinCastOutboundMessageEncoder.playNowJSON(
+            baseItem: base,
+            mediaSource: source,
+            audioStreamIndex: 0,
+            subtitleStreamIndex: -1,
+            startPositionTicks: 12_345_000,
+            context: sampleContext
+        )
+
+        let root = try decodeObject(json)
+        let options = try XCTUnwrap(root["options"] as? [String: Any])
+        XCTAssertEqual(options["startPositionTicks"] as? Int, 12_345_000)
+    }
+
+    func testPlayNowJSON_itemStubOmitsTypeAndMediaTypeWhenUnset() throws {
+        var base = BaseItemDto()
+        base.id = "bare-item"
+        base.serverID = "server-1"
+        base.name = "No types"
+        base.isFolder = false
+
+        var source = MediaSourceInfo()
+        source.id = "ms-1"
+
+        let json = try JellyfinCastOutboundMessageEncoder.playNowJSON(
+            baseItem: base,
+            mediaSource: source,
+            audioStreamIndex: 0,
+            subtitleStreamIndex: -1,
+            context: sampleContext
+        )
+
+        let root = try decodeObject(json)
+        let options = try XCTUnwrap(root["options"] as? [String: Any])
+        let items = try XCTUnwrap(options["items"] as? [[String: Any]])
+        let stub = try XCTUnwrap(items.first)
+        XCTAssertNil(stub["Type"])
+        XCTAssertNil(stub["MediaType"])
+        XCTAssertEqual(stub["Id"] as? String, "bare-item")
+    }
+
+    func testPlayNowJSON_rootOmitsOptionalKeysWithMinimalContext() throws {
+        var base = BaseItemDto()
+        base.id = "i"
+        base.serverID = "s"
+        base.name = "N"
+        base.type = .movie
+        base.mediaType = .video
+
+        var source = MediaSourceInfo()
+        source.id = "m"
+
+        let json = try JellyfinCastOutboundMessageEncoder.playNowJSON(
+            baseItem: base,
+            mediaSource: source,
+            audioStreamIndex: 0,
+            subtitleStreamIndex: -1,
+            context: minimalContext
+        )
+
+        let root = try decodeObject(json)
+        XCTAssertNil(root["serverVersion"])
+        XCTAssertNil(root["receiverName"])
+        XCTAssertEqual(root.count, 7)
     }
 
     func testPlayNowUsesItemIdWhenMediaSourceIdNil() throws {

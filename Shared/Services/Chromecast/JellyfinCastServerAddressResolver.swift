@@ -40,8 +40,7 @@ enum JellyfinCastServerAddressResolver {
             )
         }
 
-        let resolved = local.trimmingSuffix("/")
-        return resolved
+        return local.trimmingSuffix("/")
     }
 
     private static func isLoopbackHost(_ host: String) -> Bool {

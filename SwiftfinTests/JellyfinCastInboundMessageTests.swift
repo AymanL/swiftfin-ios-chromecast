@@ -46,6 +46,30 @@ final class JellyfinCastInboundMessageTests: XCTestCase {
         XCTAssertEqual(paused, false)
     }
 
+    func testPlaybackStart_nestedPlayState_ticksAndPause() {
+        let json = """
+        {"type":"playbackstart","data":{"PlayState":{"PositionTicks":120000000,"IsPaused":false}}}
+        """
+        let msg = JellyfinCastInboundMessage.parse(jsonString: json)
+        guard case let .playbackStart(ticks, paused) = msg else {
+            return XCTFail("expected playbackStart, got \(String(describing: msg))")
+        }
+        XCTAssertEqual(ticks, 120_000_000)
+        XCTAssertEqual(paused, false)
+    }
+
+    func testPlaybackStart_flatPlayState_NSNumberPositionTicks() {
+        let json = """
+        {"type":"playbackstart","data":{"PositionTicks":99,"IsPaused":true}}
+        """
+        let msg = JellyfinCastInboundMessage.parse(jsonString: json)
+        guard case let .playbackStart(ticks, paused) = msg else {
+            return XCTFail("expected playbackStart, got \(String(describing: msg))")
+        }
+        XCTAssertEqual(ticks, 99)
+        XCTAssertEqual(paused, true)
+    }
+
     func testPlaybackStop() {
         let json = #"{"type":"playbackstop","data":null}"#
         let msg = JellyfinCastInboundMessage.parse(jsonString: json)
