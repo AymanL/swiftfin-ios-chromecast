@@ -46,6 +46,8 @@ struct DebugSettingsView: View {
             } footer: {
                 Text("Matches jellyfin-web experimental receiver. You must force-quit and relaunch the app for this to take effect.")
             }
+
+            Section("Device Details") {
                 Button {
                     LabeledContent(
                         "SoC & GPU",

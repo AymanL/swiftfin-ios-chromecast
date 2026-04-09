@@ -87,12 +87,17 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         }
 
         @ViewBuilder
+        private var castButton: some View {
+            if UIDevice.isPhone {
+                CastToolbarButton()
+                    .frame(width: 44, height: 44)
+            }
+        }
+
+        @ViewBuilder
         private var compactView: some View {
             HStack(spacing: 0) {
-                if UIDevice.isPhone {
-                    CastToolbarButton()
-                        .frame(width: 44, height: 44)
-                }
+                castButton
 
                 Menu(
                     L10n.menu,
@@ -118,10 +123,7 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         @ViewBuilder
         private var regularView: some View {
             HStack(spacing: 0) {
-                if UIDevice.isPhone {
-                    CastToolbarButton()
-                        .frame(width: 44, height: 44)
-                }
+                castButton
 
                 ForEach(
                     barActionButtons,

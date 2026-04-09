@@ -15,6 +15,7 @@ struct CastToolbarButton: UIViewRepresentable {
     func makeUIView(context: Context) -> GCKUICastButton {
         let button = GCKUICastButton(frame: .zero)
         button.tintColor = .white
+        button.accessibilityLabel = "Cast"
         return button
     }
 

@@ -24,6 +24,8 @@ extension VideoPlayer {
         @EnvironmentObject
         private var manager: MediaPlayerManager
 
+        // @EnvironmentObject requires a concrete ObservableObject type; the protocol
+        // (ChromecastSessionCoordinating) is used only for test doubles.
         @EnvironmentObject
         private var castCoordinator: GoogleCastSessionCoordinator
 
@@ -109,7 +111,7 @@ extension VideoPlayer {
                 Button(L10n.close, role: .cancel) {
                     castCoordinator.clearSessionError()
                 }
-                Button("Open Settings") {
+                Button(L10n.settings) {
                     castCoordinator.clearSessionError()
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)

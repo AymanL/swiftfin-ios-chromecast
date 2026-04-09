@@ -39,8 +39,14 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     func endCastSessionWhenDismissingPlayer() {
         let manager = sessionManager
         guard manager.connectionState == .connected || manager.connectionState == .connecting else { return }
-        _ = manager.endSessionAndStopCasting(true)
-        refreshConnectionState()
+        // Return value is false if the request could not be submitted (e.g. no active session).
+        // The guard above already covers the common case; log unexpected failures for diagnostics.
+        let submitted = manager.endSessionAndStopCasting(true)
+        if !submitted {
+            assertionFailure("endSessionAndStopCasting returned false despite active connection state")
+        }
+        // Do NOT call refreshConnectionState() here — the session teardown is async.
+        // isCastSessionActive will be updated by the sessionManager(_:didEnd:withError:) delegate callback.
     }
 
     private func refreshConnectionState() {
