@@ -34,7 +34,7 @@ struct DebugSettingsView: View {
             Section {
                 Toggle("Use Cast stub video proxy", isOn: $useChromecastStubVideoProxy)
             } header: {
-                Text("Chromecast (Phase 1)")
+                Text("Chromecast")
             } footer: {
                 Text("Wiring test only: replaces VLC with a no-op stub. Restart playback after toggling.")
             }
@@ -42,7 +42,7 @@ struct DebugSettingsView: View {
             Section {
                 Toggle("Use unstable Jellyfin Cast receiver ID", isOn: $useUnstableJellyfinChromecastReceiver)
             } header: {
-                Text("Chromecast (Phase 2)")
+                Text("Chromecast (Unstable Receiver)")
             } footer: {
                 Text("Matches jellyfin-web experimental receiver. You must force-quit and relaunch the app for this to take effect.")
             }
