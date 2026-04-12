@@ -21,6 +21,9 @@ extension VideoPlayer.PlaybackControls {
         @Default(.VideoPlayer.jumpForwardInterval)
         private var jumpForwardInterval
 
+        @Environment(\.chromecastVideoPlayerCoordinator)
+        private var chromecastCoordinator: (any ChromecastVideoPlayerCoordinating)?
+
         @EnvironmentObject
         private var containerState: VideoPlayerContainerState
         @EnvironmentObject
@@ -51,7 +54,7 @@ extension VideoPlayer.PlaybackControls {
                 Group {
                     switch manager.playbackRequestStatus {
                     case .playing:
-                        Label("Pause", systemImage: "pause.fill")
+                        Label(L10n.pause, systemImage: "pause.fill")
                     case .paused:
                         Label(L10n.play, systemImage: "play.fill")
                     }
@@ -70,7 +73,7 @@ extension VideoPlayer.PlaybackControls {
                 let delta = jumpForwardInterval.rawValue
                 manager.proxy?.jumpForward(delta)
                 let targetSeconds = max(.zero, manager.seconds + delta).seconds
-                GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
+                chromecastCoordinator?.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
             } label: {
                 Label(
                     "\(jumpForwardInterval.rawValue, format: Duration.UnitsFormatStyle(allowedUnits: [.seconds], width: .narrow))",
@@ -89,7 +92,7 @@ extension VideoPlayer.PlaybackControls {
                 let delta = jumpBackwardInterval.rawValue
                 manager.proxy?.jumpBackward(delta)
                 let targetSeconds = max(.zero, manager.seconds - delta).seconds
-                GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
+                chromecastCoordinator?.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
             } label: {
                 Label(
                     "\(jumpBackwardInterval.rawValue, format: Duration.UnitsFormatStyle(allowedUnits: [.seconds], width: .narrow))",
