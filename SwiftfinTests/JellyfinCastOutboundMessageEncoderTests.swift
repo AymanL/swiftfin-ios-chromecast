@@ -72,7 +72,6 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         base.type = .movie
         base.mediaType = .video
         base.isFolder = false
-        base.userData = UserItemDataDto(playbackPositionTicks: 50_000_000)
 
         var source = MediaSourceInfo()
         source.id = "media-source-1"
@@ -82,6 +81,7 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
             mediaSource: source,
             audioStreamIndex: 1,
             subtitleStreamIndex: -1,
+            startPositionTicks: 50_000_000,
             context: sampleContext
         )
 
@@ -121,6 +121,7 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
             mediaSource: source,
             audioStreamIndex: 0,
             subtitleStreamIndex: -1,
+            startPositionTicks: 0,
             context: sampleContext
         )
 
@@ -138,7 +139,8 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
                 mediaSource: source,
                 fallbackServerId: "server-1",
                 audioStreamIndex: 0,
-                subtitleStreamIndex: -1
+                subtitleStreamIndex: -1,
+                startPositionTicks: 0
             )
         ) { error in
             XCTAssertTrue(error is ErrorMessage)

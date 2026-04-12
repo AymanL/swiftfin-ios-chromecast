@@ -38,6 +38,7 @@ enum JellyfinCastOutboundMessageEncoder {
         mediaSource: MediaSourceInfo,
         audioStreamIndex: Int,
         subtitleStreamIndex: Int,
+        startPositionTicks: Int,
         context: SenderContext
     ) throws -> String {
         let options = try playOptionsDictionary(
@@ -45,7 +46,8 @@ enum JellyfinCastOutboundMessageEncoder {
             mediaSource: mediaSource,
             fallbackServerId: context.serverId,
             audioStreamIndex: audioStreamIndex,
-            subtitleStreamIndex: subtitleStreamIndex
+            subtitleStreamIndex: subtitleStreamIndex,
+            startPositionTicks: startPositionTicks
         )
         return try jsonString(command: "PlayNow", options: options, context: context)
     }
@@ -55,7 +57,8 @@ enum JellyfinCastOutboundMessageEncoder {
         mediaSource: MediaSourceInfo,
         fallbackServerId: String,
         audioStreamIndex: Int,
-        subtitleStreamIndex: Int
+        subtitleStreamIndex: Int,
+        startPositionTicks: Int
     ) throws -> [String: Any] {
         guard let itemId = baseItem.id else {
             throw ErrorMessage("Missing item id for Chromecast load.")
@@ -63,12 +66,11 @@ enum JellyfinCastOutboundMessageEncoder {
 
         let stub = try itemStubDictionary(from: baseItem, fallbackServerId: fallbackServerId)
 
-        let startTicks = baseItem.userData?.playbackPositionTicks ?? 0
         let mediaSourceId = mediaSource.id ?? itemId
 
         return [
             "items": [stub],
-            "startPositionTicks": startTicks,
+            "startPositionTicks": startPositionTicks,
             "mediaSourceId": mediaSourceId,
             "audioStreamIndex": audioStreamIndex,
             "subtitleStreamIndex": subtitleStreamIndex,

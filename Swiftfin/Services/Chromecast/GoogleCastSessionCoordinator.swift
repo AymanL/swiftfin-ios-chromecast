@@ -144,11 +144,13 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
             let context = try await makeSenderContext(castSession: session)
             let audioIndex = item.chromecastAudioStreamIndexForPlaybackInfo
             let subtitleIndex = item.chromecastSubtitleStreamIndexForPlaybackInfo
+            let startTicks = Container.shared.mediaPlayerManager().seconds.ticks
             let json = try JellyfinCastOutboundMessageEncoder.playNowJSON(
                 baseItem: item.baseItem,
                 mediaSource: item.mediaSource,
                 audioStreamIndex: audioIndex,
                 subtitleStreamIndex: subtitleIndex,
+                startPositionTicks: startTicks,
                 context: context
             )
             try postJSON(json)
