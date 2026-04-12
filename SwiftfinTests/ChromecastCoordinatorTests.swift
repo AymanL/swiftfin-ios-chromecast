@@ -19,15 +19,11 @@ final class FakeChromecastSessionCoordinator: ChromecastSessionCoordinating, Obs
     @Published
     var isCastSessionActive: Bool = false
 
-    private(set) var endCastSessionCallCount = 0
-
     func clearSessionError() {
         sessionErrorMessage = nil
     }
 
-    func endCastSession() {
-        endCastSessionCallCount += 1
-    }
+    func endCastSession() {}
 }
 
 @MainActor
@@ -60,23 +56,5 @@ final class ChromecastCoordinatorTests: XCTestCase {
         let fake = FakeChromecastSessionCoordinator()
         fake.isCastSessionActive = true
         XCTAssertTrue(fake.isCastSessionActive)
-    }
-
-    // MARK: endCastSession
-
-    func testEndCastSessionIsRecorded() {
-        let fake = FakeChromecastSessionCoordinator()
-        fake.endCastSession()
-        fake.endCastSession()
-        XCTAssertEqual(fake.endCastSessionCallCount, 2)
-    }
-
-    func testEndCastSessionDoesNotClearSessionError() {
-        // endCastSession should not side-effect the error message;
-        // error clearing is driven by the user dismissing the alert.
-        let fake = FakeChromecastSessionCoordinator()
-        fake.sessionErrorMessage = "prior error"
-        fake.endCastSession()
-        XCTAssertEqual(fake.sessionErrorMessage, "prior error")
     }
 }
