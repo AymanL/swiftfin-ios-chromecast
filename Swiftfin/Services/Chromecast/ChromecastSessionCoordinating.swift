@@ -9,7 +9,7 @@
 import Combine
 import Foundation
 
-/// Abstraction over Google Cast session lifecycle for UI and tests (Phase 2).
+/// Abstraction over Google Cast session lifecycle for UI and tests.
 @MainActor
 protocol ChromecastSessionCoordinating: AnyObject, ObservableObject {
 
@@ -21,6 +21,6 @@ protocol ChromecastSessionCoordinating: AnyObject, ObservableObject {
 
     func clearSessionError()
 
-    /// End Cast when the video player is dismissed (Phase 2: no LOAD yet; avoid orphan sessions).
-    func endCastSessionWhenDismissingPlayer()
+    /// End the Cast session.
+    func endCastSession()
 }

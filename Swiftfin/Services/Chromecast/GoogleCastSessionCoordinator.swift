@@ -61,7 +61,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         sessionErrorMessage = nil
     }
 
-    func endCastSessionWhenDismissingPlayer() {
+    func endCastSession() {
         let manager = sessionManager
         if let session = manager.currentCastSession, let channel = connectSDKChannel {
             _ = session.remove(channel)
@@ -71,8 +71,14 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         lastPlayNowSignature = nil
 
         guard manager.connectionState == .connected || manager.connectionState == .connecting else { return }
-        _ = manager.endSessionAndStopCasting(true)
-        refreshConnectionState()
+        // Return value is false if the request could not be submitted (e.g. no active session).
+        // The guard above already covers the common case; log unexpected failures for diagnostics.
+        let submitted = manager.endSessionAndStopCasting(true)
+        if !submitted {
+            assertionFailure("endSessionAndStopCasting returned false despite active connection state")
+        }
+        // Do NOT call refreshConnectionState() here — the session teardown is async.
+        // isCastSessionActive will be updated by the sessionManager(_:didEnd:withError:) delegate callback.
     }
 
     /// Called when `playbackItem` changes or Cast becomes active (Phase 3 LOAD).
@@ -246,8 +252,10 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     private func mapError(_ error: Error) -> String {
         let ns = error as NSError
         let description = error.localizedDescription
+        // Heuristic: NSURLErrorDomain or "network" in the message suggests a connectivity problem.
+        // Append a Wi-Fi / Local Network hint so the user knows where to look first.
         if ns.domain == NSURLErrorDomain || description.localizedCaseInsensitiveContains("network") {
-            return "\(description)\n\nIf Cast devices are missing, check Wi‑Fi and allow Local Network access for this app in Settings."
+            return "\(description)\n\n\(L10n.castNetworkErrorHint)"
         }
         return description
     }

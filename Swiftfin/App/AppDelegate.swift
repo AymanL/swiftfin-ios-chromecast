@@ -10,26 +10,13 @@ import GoogleCast
 import PreferencesView
 import UIKit
 
-#if DEBUG
-import Defaults
-#endif
-
 class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        let receiverAppID: String = {
-            #if DEBUG
-            if Defaults[.useUnstableJellyfinChromecastReceiver] {
-                return JellyfinCastReceiverID.unstable
-            }
-            #endif
-            return JellyfinCastReceiverID.stable
-        }()
-
-        let discoveryCriteria = GCKDiscoveryCriteria(applicationID: receiverAppID)
+        let discoveryCriteria = GCKDiscoveryCriteria(applicationID: JellyfinCastReceiverID.stable)
         let options = GCKCastOptions(discoveryCriteria: discoveryCriteria)
         GCKCastContext.setSharedInstanceWith(options)
         return true
