@@ -14,10 +14,6 @@ import Foundation
 /// a session is started. The canonical source for these values is jellyfin-web
 /// (`src/plugins/chromecastPlayer/plugin.js`); the receiver itself is hosted at
 /// https://github.com/jellyfin/jellyfin-chromecast.
-///
-/// Parity: `jellyfin-web` and server playback settings use the same values for
-/// stable vs unstable receivers. `Info.plist` lists `_F007D354._googlecast._tcp` and
-/// `_6F511C87._googlecast._tcp` under `NSBonjourServices` for discovery.
 enum JellyfinCastReceiverID {
 
     /// Production Web Receiver — use this in release builds.
