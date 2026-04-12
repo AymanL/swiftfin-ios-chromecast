@@ -62,8 +62,10 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     private func mapError(_ error: Error) -> String {
         let ns = error as NSError
         let description = error.localizedDescription
+        // Heuristic: NSURLErrorDomain or "network" in the message suggests a connectivity problem.
+        // Append a Wi-Fi / Local Network hint so the user knows where to look first.
         if ns.domain == NSURLErrorDomain || description.localizedCaseInsensitiveContains("network") {
-            return "\(description)\n\nIf Cast devices are missing, check Wi‑Fi and allow Local Network access for this app in Settings."
+            return "\(description)\n\n\(L10n.castNetworkErrorHint)"
         }
         return description
     }
