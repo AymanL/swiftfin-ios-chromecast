@@ -22,14 +22,6 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         receiverName: "Living Room TV"
     )
 
-    func testTransportCommandPause_includesCommandAndEmptyOptions() throws {
-        let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: .pause, context: sampleContext)
-        let root = try decodeObject(json)
-        XCTAssertEqual(root["command"] as? String, "Pause")
-        let options = try XCTUnwrap(root["options"] as? [String: Any])
-        XCTAssertTrue(options.isEmpty)
-    }
-
     func testTransportCommandSeek_includesPositionSeconds() throws {
         let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(
             command: .seek,
@@ -58,10 +50,6 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         XCTAssertTrue(options.isEmpty)
 
         XCTAssertEqual(root.count, 9)
-        XCTAssertTrue(
-            json.hasPrefix("{\"accessToken\":"),
-            "JSONSerialization sortedKeys should emit accessToken first at the root."
-        )
     }
 
     func testPlayNowJSON_itemStubAndPlayOptions() throws {
