@@ -18,4 +18,7 @@ enum JellyfinCastReceiverID {
 
     /// Production Web Receiver — use this in release builds.
     static let stable = "F007D354"
+
+    /// Development Web Receiver built from the main branch — use this for testing unreleased receiver changes.
+    static let unstable = "6F511C87"
 }
