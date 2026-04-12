@@ -36,7 +36,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         sessionErrorMessage = nil
     }
 
-    func endCastSessionWhenDismissingPlayer() {
+    func endCastSession() {
         let manager = sessionManager
         guard manager.connectionState == .connected || manager.connectionState == .connecting else { return }
         // Return value is false if the request could not be submitted (e.g. no active session).

@@ -62,7 +62,7 @@ struct VideoPlayer: View {
         }
         #if os(iOS)
         .onDisappear {
-            GoogleCastSessionCoordinator.shared.endCastSessionWhenDismissingPlayer()
+            GoogleCastSessionCoordinator.shared.endCastSession()
         }
         #endif
     }
