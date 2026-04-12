@@ -10,6 +10,7 @@ import Combine
 import Factory
 import Foundation
 import GoogleCast
+import JellyfinAPI
 
 /// Observes `GCKSessionManager`, drives Jellyfin `com.connectsdk` messages, and surfaces errors for SwiftUI.
 @MainActor
@@ -32,8 +33,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     private var pendingChromecastPlaybackItem: MediaPlayerItem?
     private var lastPlayNowSignature: String?
     private var seekDebounceTask: Task<Void, Never>?
-
-    private static var didInstallMediaPlayerChromecastHooks = false
+    private var cancellables: Set<AnyCancellable> = []
 
     /// True after a `PlayNow` was sent for this Cast session; phone controls should target the TV.
     var routesPlaybackControlsToChromecast: Bool {
@@ -44,18 +44,20 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         super.init()
         sessionManager.add(self)
         refreshConnectionState()
-        Self.installMediaPlayerChromecastHooksIfNeeded()
-    }
 
-    private static func installMediaPlayerChromecastHooksIfNeeded() {
-        guard !didInstallMediaPlayerChromecastHooks else { return }
-        didInstallMediaPlayerChromecastHooks = true
-        MediaPlayerManager.chromecastRoutesPlaybackControls = {
-            GoogleCastSessionCoordinator.shared.routesPlaybackControlsToChromecast
-        }
-        MediaPlayerManager.chromecastMirrorPlaybackRequest = { status in
-            await GoogleCastSessionCoordinator.shared.mirrorPlaybackRequestToChromecast(status)
-        }
+        // Register as the play/pause router for MediaPlayerManager.
+        MediaPlayerManager.chromecastRouter = self
+
+        // Track the active playback item so PlayNow can fire when Cast connects (replaces
+        // VideoPlayer's onReceive(manager.$playbackItem) Chromecast block).
+        Container.shared.mediaPlayerManager().$playbackItem
+            .sink { [weak self] item in
+                guard let self, item?.baseItem.id != nil else { return }
+                self.pendingChromecastPlaybackItem = item
+                guard self.isCastSessionActive else { return }
+                Task { await self.flushChromecastMessagesIfReady() }
+            }
+            .store(in: &cancellables)
     }
 
     func clearSessionError() {
@@ -280,6 +282,12 @@ extension GoogleCastSessionCoordinator: @preconcurrency GCKSessionManagerListene
         Task { @MainActor in
             self.setupConnectChannel(for: session)
             self.refreshConnectionState()
+            // Pick up whichever item is currently loaded (replaces VideoPlayer's
+            // onReceive(coordinator.$isCastSessionActive) block).
+            let currentItem = Container.shared.mediaPlayerManager().playbackItem
+            if currentItem?.baseItem.id != nil {
+                self.queueChromecastLoad(playbackItem: currentItem)
+            }
             await self.flushChromecastMessagesIfReady()
         }
     }
@@ -316,5 +324,29 @@ extension GoogleCastSessionCoordinator: @preconcurrency GCKSessionManagerListene
             self.refreshConnectionState()
             self.sessionErrorMessage = self.mapError(error)
         }
+    }
+}
+
+// MARK: - ChromecastPlaybackRouting
+
+extension GoogleCastSessionCoordinator: ChromecastPlaybackRouting {
+
+    func routesPlaybackControls() -> Bool {
+        routesPlaybackControlsToChromecast
+    }
+
+    func mirrorPlaybackRequest(_ status: MediaPlayerManager.PlaybackRequestStatus) async {
+        await mirrorPlaybackRequestToChromecast(status)
+    }
+}
+
+// MARK: - ChromecastVideoPlayerCoordinating
+
+extension GoogleCastSessionCoordinator: ChromecastVideoPlayerCoordinating {
+
+    func handleVideoPlayerDisappear() {
+        // While Cast is active, keep the session so the TV can keep playing.
+        guard !isCastSessionActive else { return }
+        endCastSession()
     }
 }

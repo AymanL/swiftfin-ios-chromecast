@@ -17,6 +17,9 @@ struct VideoPlayer: View {
     @Environment(\.presentationCoordinator)
     private var presentationCoordinator
 
+    @Environment(\.chromecastVideoPlayerCoordinator)
+    private var chromecastCoordinator: (any ChromecastVideoPlayerCoordinating)?
+
     @InjectedObject(\.mediaPlayerManager)
     private var manager: MediaPlayerManager
 
@@ -60,13 +63,9 @@ struct VideoPlayer: View {
             manager.proxy = proxy
             manager.start()
         }
-        #if os(iOS)
         .onDisappear {
-            // While Cast is active, keep the session so the TV can keep playing (stop via Google Cast UI).
-            guard !GoogleCastSessionCoordinator.shared.isCastSessionActive else { return }
-            GoogleCastSessionCoordinator.shared.endCastSession()
+            chromecastCoordinator?.handleVideoPlayerDisappear()
         }
-        #endif
     }
 
     var body: some View {
@@ -98,11 +97,9 @@ struct VideoPlayer: View {
                 manager.seconds = scrubbedSeconds
                 proxy.setSeconds(scrubbedSeconds)
 
-                #if os(iOS)
-                GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(
+                chromecastCoordinator?.sendChromecastSeekWhenControlling(
                     positionSeconds: scrubbedSeconds.seconds
                 )
-                #endif
             }
             .backport
             .onChange(of: subtitleOffset) { _, newValue in
@@ -127,19 +124,7 @@ struct VideoPlayer: View {
 
                 // TODO: move to container view
                 containerState.scrubbedSeconds.value = newItem?.baseItem.startSeconds ?? .zero
-
-                #if os(iOS)
-                if GoogleCastSessionCoordinator.shared.isCastSessionActive {
-                    GoogleCastSessionCoordinator.shared.queueChromecastLoad(playbackItem: newItem)
-                }
-                #endif
             }
-        #if os(iOS)
-            .onReceive(GoogleCastSessionCoordinator.shared.$isCastSessionActive) { isActive in
-                guard isActive else { return }
-                GoogleCastSessionCoordinator.shared.queueChromecastLoad(playbackItem: manager.playbackItem)
-            }
-        #endif
             .onReceive(manager.$state) { newState in
                 if newState == .stopped, !isBeingDismissedByTransition {
                     router.dismiss()

@@ -6,6 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+#if os(iOS)
 import JellyfinAPI
 
 extension MediaPlayerItem {
@@ -87,3 +88,4 @@ extension MediaPlayerItem {
             && original.isDefault == adjustedCopy.isDefault
     }
 }
+#endif
