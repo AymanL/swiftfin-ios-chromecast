@@ -10,7 +10,7 @@ import Combine
 import Foundation
 import GoogleCast
 
-/// Observes `GCKSessionManager` and surfaces errors for SwiftUI; tears down session when leaving the player.
+/// Observes `GCKSessionManager` and surfaces connection state and errors as published properties for SwiftUI.
 @MainActor
 final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinating, ObservableObject {
 

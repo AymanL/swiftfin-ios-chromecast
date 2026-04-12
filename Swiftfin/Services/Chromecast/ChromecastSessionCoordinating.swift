@@ -21,7 +21,6 @@ protocol ChromecastSessionCoordinating: AnyObject, ObservableObject {
 
     func clearSessionError()
 
-    /// End Cast when the video player is dismissed to avoid orphaned sessions.
-    /// Called on dismiss because playback is not yet sent to the receiver (no LOAD command).
+    /// End the Cast session. Called when the video player is dismissed to clean up idle sessions.
     func endCastSessionWhenDismissingPlayer()
 }

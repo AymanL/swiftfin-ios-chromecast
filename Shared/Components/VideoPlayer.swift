@@ -8,10 +8,7 @@
 
 import Factory
 import SwiftUI
-
-#if os(iOS)
 import UIKit
-#endif
 
 struct VideoPlayer: View {
 
