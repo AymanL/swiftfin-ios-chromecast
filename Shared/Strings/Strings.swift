@@ -268,6 +268,8 @@ internal enum L10n {
   internal static let capabilities = L10n.tr("Localizable", "capabilities", fallback: "Capabilities")
   /// Cast & crew
   internal static let castAndCrew = L10n.tr("Localizable", "castAndCrew", fallback: "Cast & crew")
+  /// Chromecast cannot reach a localhost server. Add a LAN or HTTPS address in Swiftfin settings, or ensure Jellyfin reports a valid Local Address.
+  internal static let castLocalhostServerError = L10n.tr("Localizable", "castLocalhostServerError", fallback: "Chromecast cannot reach a localhost server. Add a LAN or HTTPS address in Swiftfin settings, or ensure Jellyfin reports a valid Local Address.")
   /// If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.
   internal static let castNetworkErrorHint = L10n.tr("Localizable", "castNetworkErrorHint", fallback: "If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.")
   /// Category
