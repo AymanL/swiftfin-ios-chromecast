@@ -342,11 +342,4 @@ extension GoogleCastSessionCoordinator: ChromecastPlaybackRouting {
 
 // MARK: - ChromecastVideoPlayerCoordinating
 
-extension GoogleCastSessionCoordinator: ChromecastVideoPlayerCoordinating {
-
-    func handleVideoPlayerDisappear() {
-        // While Cast is active, keep the session so the TV can keep playing.
-        guard !isCastSessionActive else { return }
-        endCastSession()
-    }
-}
+extension GoogleCastSessionCoordinator: ChromecastVideoPlayerCoordinating { }

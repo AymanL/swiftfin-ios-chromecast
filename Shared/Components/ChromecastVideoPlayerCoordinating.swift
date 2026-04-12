@@ -8,13 +8,10 @@
 
 import SwiftUI
 
-/// Abstracts Cast control for `VideoPlayer` (Shared) so the view has no direct
+/// Abstracts Cast control for `VideoPlayer` so the view has no direct
 /// dependency on the iOS-only `GoogleCastSessionCoordinator`.
 @MainActor
 protocol ChromecastVideoPlayerCoordinating: AnyObject {
-
-    /// Called when the video player view disappears; ends the Cast session unless one is active.
-    func handleVideoPlayerDisappear()
 
     /// Schedules a debounced `Seek` on the Cast receiver.
     func sendChromecastSeekWhenControlling(positionSeconds: Double)

@@ -63,9 +63,6 @@ struct VideoPlayer: View {
             manager.proxy = proxy
             manager.start()
         }
-        .onDisappear {
-            chromecastCoordinator?.handleVideoPlayerDisappear()
-        }
     }
 
     var body: some View {
