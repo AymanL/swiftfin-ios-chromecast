@@ -130,6 +130,24 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         XCTAssertEqual(options["mediaSourceId"] as? String, "fallback-id")
     }
 
+    func testIdentifyJSON_omitsNilOptionalFields() throws {
+        let minimalContext = JellyfinCastOutboundMessageEncoder.SenderContext(
+            userId: "user-1",
+            deviceId: "device-1",
+            accessToken: "token-1",
+            serverAddress: "https://jelly.example",
+            serverId: "server-1",
+            serverVersion: nil,
+            receiverName: nil
+        )
+        let json = try JellyfinCastOutboundMessageEncoder.identifyJSON(context: minimalContext)
+        let root = try decodeObject(json)
+        // serverVersion and receiverName must be absent entirely, not present as null.
+        XCTAssertEqual(root.count, 7)
+        XCTAssertNil(root["serverVersion"])
+        XCTAssertNil(root["receiverName"])
+    }
+
     func testPlayOptionsThrowsWhenItemIdMissing() {
         let base = BaseItemDto()
         let source = MediaSourceInfo()
@@ -144,6 +162,17 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
             )
         ) { error in
             XCTAssertTrue(error is ErrorMessage)
+            XCTAssertEqual((error as? ErrorMessage)?.errorDescription, L10n.castMissingItemId)
+        }
+    }
+
+    func testItemStubThrowsWhenItemIdMissing() {
+        let base = BaseItemDto()
+        XCTAssertThrowsError(
+            try JellyfinCastOutboundMessageEncoder.itemStubDictionary(from: base, fallbackServerId: "server-1")
+        ) { error in
+            XCTAssertTrue(error is ErrorMessage)
+            XCTAssertEqual((error as? ErrorMessage)?.errorDescription, L10n.castMissingItemIdStub)
         }
     }
 
