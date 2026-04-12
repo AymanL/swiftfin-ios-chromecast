@@ -33,6 +33,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     private var pendingChromecastPlaybackItem: MediaPlayerItem?
     private var lastPlayNowSignature: String?
     private var seekDebounceTask: Task<Void, Never>?
+    private static let seekDebounceInterval: Duration = .milliseconds(300)
     private var cancellables: Set<AnyCancellable> = []
 
     /// True after a `PlayNow` was sent for this Cast session; phone controls should target the TV.
@@ -53,9 +54,8 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         Container.shared.mediaPlayerManager().$playbackItem
             .sink { [weak self] item in
                 guard let self, item?.baseItem.id != nil else { return }
-                self.pendingChromecastPlaybackItem = item
                 guard self.isCastSessionActive else { return }
-                Task { await self.flushChromecastMessagesIfReady() }
+                self.loadChromecastItem(item)
             }
             .store(in: &cancellables)
     }
@@ -86,17 +86,16 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         // isCastSessionActive will be updated by the sessionManager(_:didEnd:withError:) delegate callback.
     }
 
-    /// Called when `playbackItem` changes or Cast becomes active (Phase 3 LOAD).
-    func queueChromecastLoad(playbackItem: MediaPlayerItem?) {
+    func loadChromecastItem(_ playbackItem: MediaPlayerItem?) {
         pendingChromecastPlaybackItem = playbackItem
         Task { await flushChromecastMessagesIfReady() }
     }
 
-    func handleConnectSDKChannelBecameWritable() async {
+    func connectSDKChannelBecameWritable() async {
         await flushChromecastMessagesIfReady()
     }
 
-    func handleConnectSDKChannelDisconnected() {
+    func connectSDKChannelDidDisconnect() {
         connectSDKChannel = nil
         sentIdentifyThisConnection = false
     }
@@ -122,7 +121,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         let channel = JellyfinConnectSDKCastChannel(owner: self)
         connectSDKChannel = channel
         if !session.add(channel) {
-            sessionErrorMessage = "Unable to register Chromecast control channel."
+            sessionErrorMessage = L10n.castChannelRegistrationError
         }
     }
 
@@ -134,8 +133,9 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         else { return }
 
         do {
+            let context = try await makeSenderContext(castSession: session)
+
             if !sentIdentifyThisConnection {
-                let context = try await makeSenderContext(castSession: session)
                 let json = try JellyfinCastOutboundMessageEncoder.identifyJSON(context: context)
                 try postJSON(json)
                 sentIdentifyThisConnection = true
@@ -146,7 +146,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
             let signature = "\(item.baseItem.id ?? "")-\(item.playSessionID)"
             if lastPlayNowSignature == signature { return }
 
-            let context = try await makeSenderContext(castSession: session)
             let audioIndex = item.chromecastAudioStreamIndexForPlaybackInfo
             let subtitleIndex = item.chromecastSubtitleStreamIndexForPlaybackInfo
             let startTicks = Container.shared.mediaPlayerManager().seconds.ticks
@@ -166,26 +165,6 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         }
     }
 
-    /// Forwards play/pause to the Jellyfin receiver (`Pause` / `Unpause`).
-    func mirrorPlaybackRequestToChromecast(_ status: MediaPlayerManager.PlaybackRequestStatus) async {
-        guard routesPlaybackControlsToChromecast,
-              isCastSessionActive,
-              connectSDKChannel?.isWritable == true,
-              let castSession = sessionManager.currentCastSession
-        else { return }
-
-        do {
-            let context = try await makeSenderContext(castSession: castSession)
-            let command: JellyfinCastOutboundMessageEncoder.TransportCommand = switch status {
-            case .paused: .pause
-            case .playing: .unpause
-            }
-            let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: command, context: context)
-            try postJSON(json)
-        } catch {
-            // Avoid alert spam for transport; user still has local controls if Cast ignores a message.
-        }
-    }
 
     /// Schedules a debounced `Seek` to the TV. Rapid calls (e.g. repeated jump taps) coalesce
     /// into one send after 300 ms of inactivity, preventing Cast channel saturation.
@@ -194,7 +173,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         guard routesPlaybackControlsToChromecast else { return }
         let clamped = max(0, positionSeconds)
         seekDebounceTask = Task { [weak self] in
-            do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+            do { try await Task.sleep(for: Self.seekDebounceInterval) } catch { return }
             await self?.flushDebouncedSeek(positionSeconds: clamped)
         }
     }
@@ -222,13 +201,13 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
 
     private func postJSON(_ json: String) throws {
         guard let channel = connectSDKChannel else {
-            throw ErrorMessage("Chromecast channel is not ready.")
+            throw ErrorMessage(L10n.castChannelNotReady)
         }
 
         var gckError: GCKError?
         let ok = channel.sendTextMessage(json, error: &gckError)
         if !ok {
-            throw gckError ?? ErrorMessage("Failed to send Chromecast message.")
+            throw gckError ?? ErrorMessage(L10n.castMessageSendError)
         }
     }
 
@@ -241,9 +220,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         }
 
         guard let userSession else {
-            throw ErrorMessage(
-                "Swiftfin could not load your Jellyfin session for Cast. Return to the library, confirm you are signed in, then try Cast again."
-            )
+            throw ErrorMessage(L10n.castSessionLoadError)
         }
 
         let serverAddress = try await JellyfinCastServerAddressResolver.serverURLStringForChromecast(
@@ -268,6 +245,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         let ns = error as NSError
         let description = error.localizedDescription
         // Heuristic: NSURLErrorDomain or "network" in the message suggests a connectivity problem.
+        // The string check is locale-dependent and may miss non-English errors; NSURLErrorDomain is the reliable path.
         // Append a Wi-Fi / Local Network hint so the user knows where to look first.
         if ns.domain == NSURLErrorDomain || description.localizedCaseInsensitiveContains("network") {
             return "\(description)\n\n\(L10n.castNetworkErrorHint)"
@@ -286,7 +264,7 @@ extension GoogleCastSessionCoordinator: @preconcurrency GCKSessionManagerListene
             // onReceive(coordinator.$isCastSessionActive) block).
             let currentItem = Container.shared.mediaPlayerManager().playbackItem
             if currentItem?.baseItem.id != nil {
-                self.queueChromecastLoad(playbackItem: currentItem)
+                self.loadChromecastItem(currentItem)
             }
             await self.flushChromecastMessagesIfReady()
         }
@@ -336,7 +314,23 @@ extension GoogleCastSessionCoordinator: ChromecastPlaybackRouting {
     }
 
     func mirrorPlaybackRequest(_ status: MediaPlayerManager.PlaybackRequestStatus) async {
-        await mirrorPlaybackRequestToChromecast(status)
+        guard routesPlaybackControlsToChromecast,
+              isCastSessionActive,
+              connectSDKChannel?.isWritable == true,
+              let castSession = sessionManager.currentCastSession
+        else { return }
+
+        do {
+            let context = try await makeSenderContext(castSession: castSession)
+            let command: JellyfinCastOutboundMessageEncoder.TransportCommand = switch status {
+            case .paused: .pause
+            case .playing: .unpause
+            }
+            let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: command, context: context)
+            try postJSON(json)
+        } catch {
+            // Avoid alert spam for transport; user still has local controls if Cast ignores a message.
+        }
     }
 }
 
