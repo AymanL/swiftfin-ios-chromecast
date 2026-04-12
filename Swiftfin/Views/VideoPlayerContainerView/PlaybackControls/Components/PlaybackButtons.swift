@@ -70,9 +70,7 @@ extension VideoPlayer.PlaybackControls {
                 let delta = jumpForwardInterval.rawValue
                 manager.proxy?.jumpForward(delta)
                 let targetSeconds = max(.zero, manager.seconds + delta).seconds
-                Task {
-                    await GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
-                }
+                GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
             } label: {
                 Label(
                     "\(jumpForwardInterval.rawValue, format: Duration.UnitsFormatStyle(allowedUnits: [.seconds], width: .narrow))",
@@ -91,9 +89,7 @@ extension VideoPlayer.PlaybackControls {
                 let delta = jumpBackwardInterval.rawValue
                 manager.proxy?.jumpBackward(delta)
                 let targetSeconds = max(.zero, manager.seconds - delta).seconds
-                Task {
-                    await GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
-                }
+                GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(positionSeconds: targetSeconds)
             } label: {
                 Label(
                     "\(jumpBackwardInterval.rawValue, format: Duration.UnitsFormatStyle(allowedUnits: [.seconds], width: .narrow))",

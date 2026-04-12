@@ -31,6 +31,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     private var sentIdentifyThisConnection = false
     private var pendingChromecastPlaybackItem: MediaPlayerItem?
     private var lastPlayNowSignature: String?
+    private var seekDebounceTask: Task<Void, Never>?
 
     private static var didInstallMediaPlayerChromecastHooks = false
 
@@ -69,6 +70,8 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         connectSDKChannel = nil
         sentIdentifyThisConnection = false
         lastPlayNowSignature = nil
+        seekDebounceTask?.cancel()
+        seekDebounceTask = nil
 
         guard manager.connectionState == .connected || manager.connectionState == .connecting else { return }
         // Return value is false if the request could not be submitted (e.g. no active session).
@@ -182,21 +185,29 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         }
     }
 
-    /// Seeks the TV to `positionSeconds` (receiver `Seek` command; position is seconds).
-    func sendChromecastSeekWhenControlling(positionSeconds: Double) async {
+    /// Schedules a debounced `Seek` to the TV. Rapid calls (e.g. repeated jump taps) coalesce
+    /// into one send after 300 ms of inactivity, preventing Cast channel saturation.
+    func sendChromecastSeekWhenControlling(positionSeconds: Double) {
+        seekDebounceTask?.cancel()
+        guard routesPlaybackControlsToChromecast else { return }
+        let clamped = max(0, positionSeconds)
+        seekDebounceTask = Task { [weak self] in
+            do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+            await self?.flushDebouncedSeek(positionSeconds: clamped)
+        }
+    }
+
+    private func flushDebouncedSeek(positionSeconds: Double) async {
         guard routesPlaybackControlsToChromecast,
               isCastSessionActive,
               connectSDKChannel?.isWritable == true,
               let castSession = sessionManager.currentCastSession
         else { return }
-
-        let clamped = max(0, positionSeconds)
-
         do {
             let context = try await makeSenderContext(castSession: castSession)
             let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(
                 command: "Seek",
-                options: ["position": clamped],
+                options: ["position": positionSeconds],
                 context: context
             )
             try postJSON(json)
@@ -291,6 +302,8 @@ extension GoogleCastSessionCoordinator: @preconcurrency GCKSessionManagerListene
             self.connectSDKChannel = nil
             self.sentIdentifyThisConnection = false
             self.lastPlayNowSignature = nil
+            self.seekDebounceTask?.cancel()
+            self.seekDebounceTask = nil
             self.refreshConnectionState()
             if let error {
                 self.sessionErrorMessage = self.mapError(error)

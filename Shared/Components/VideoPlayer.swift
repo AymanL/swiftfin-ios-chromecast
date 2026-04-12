@@ -99,11 +99,9 @@ struct VideoPlayer: View {
                 proxy.setSeconds(scrubbedSeconds)
 
                 #if os(iOS)
-                Task {
-                    await GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(
-                        positionSeconds: scrubbedSeconds.seconds
-                    )
-                }
+                GoogleCastSessionCoordinator.shared.sendChromecastSeekWhenControlling(
+                    positionSeconds: scrubbedSeconds.seconds
+                )
                 #endif
             }
             .backport
