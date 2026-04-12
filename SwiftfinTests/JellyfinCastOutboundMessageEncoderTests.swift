@@ -23,7 +23,7 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
     )
 
     func testTransportCommandPause_includesCommandAndEmptyOptions() throws {
-        let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: "Pause", context: sampleContext)
+        let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: .pause, context: sampleContext)
         let root = try decodeObject(json)
         XCTAssertEqual(root["command"] as? String, "Pause")
         let options = try XCTUnwrap(root["options"] as? [String: Any])
@@ -32,7 +32,7 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
 
     func testTransportCommandSeek_includesPositionSeconds() throws {
         let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(
-            command: "Seek",
+            command: .seek,
             options: ["position": 125.5],
             context: sampleContext
         )

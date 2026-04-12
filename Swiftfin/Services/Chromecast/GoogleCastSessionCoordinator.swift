@@ -176,9 +176,9 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
 
         do {
             let context = try await makeSenderContext(castSession: castSession)
-            let command: String = switch status {
-            case .paused: "Pause"
-            case .playing: "Unpause"
+            let command: JellyfinCastOutboundMessageEncoder.TransportCommand = switch status {
+            case .paused: .pause
+            case .playing: .unpause
             }
             let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(command: command, context: context)
             try postJSON(json)
@@ -208,7 +208,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         do {
             let context = try await makeSenderContext(castSession: castSession)
             let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(
-                command: "Seek",
+                command: .seek,
                 options: ["position": positionSeconds],
                 context: context
             )
