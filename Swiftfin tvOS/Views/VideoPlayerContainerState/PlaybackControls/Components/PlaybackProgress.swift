@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Combine
 import Defaults
 import JellyfinAPI
 import SwiftUI
@@ -108,16 +107,7 @@ extension VideoPlayer.PlaybackControls {
                     SplitTimeStamp()
                 }
             }
-            .onReceive(
-                manager.secondsBox.$value.receive(on: DispatchQueue.main)
-            ) { newSeconds in
-                guard MediaPlayerManager.chromecastRoutesPlaybackControls?() == true,
-                      !isScrubbing
-                else { return }
-                if scrubbedSecondsBox.value != newSeconds {
-                    scrubbedSecondsBox.value = newSeconds
-                }
-            }
+            .chromecastScrubberSync(manager: manager, scrubbedSecondsBox: scrubbedSecondsBox, isScrubbing: isScrubbing)
             .focused($isFocused)
             .scaleEffect(isFocused ? 1.0 : 0.95)
             .animation(.easeInOut(duration: 0.3), value: isFocused)

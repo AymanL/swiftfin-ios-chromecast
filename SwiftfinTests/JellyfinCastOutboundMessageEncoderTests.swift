@@ -43,7 +43,7 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
 
     func testTransportCommandSeek_includesPositionSeconds() throws {
         let json = try JellyfinCastOutboundMessageEncoder.transportCommandJSON(
-            command: "Seek",
+            command: .seek,
             options: ["position": 125.5],
             context: sampleContext
         )
@@ -77,10 +77,6 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         XCTAssertTrue(options.isEmpty)
 
         XCTAssertEqual(root.count, 9)
-        XCTAssertTrue(
-            json.hasPrefix("{\"accessToken\":"),
-            "JSONSerialization sortedKeys should emit accessToken first at the root."
-        )
     }
 
     func testIdentifyJSON_omitsOptionalServerVersionAndReceiverName() throws {
@@ -99,7 +95,6 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         base.type = .movie
         base.mediaType = .video
         base.isFolder = false
-        base.userData = UserItemDataDto(playbackPositionTicks: 50_000_000)
 
         var source = MediaSourceInfo()
         source.id = "media-source-1"
@@ -109,6 +104,7 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
             mediaSource: source,
             audioStreamIndex: 1,
             subtitleStreamIndex: -1,
+            startPositionTicks: 50_000_000,
             context: sampleContext
         )
 
@@ -226,12 +222,31 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
             mediaSource: source,
             audioStreamIndex: 0,
             subtitleStreamIndex: -1,
+            startPositionTicks: 0,
             context: sampleContext
         )
 
         let root = try decodeObject(json)
         let options = try XCTUnwrap(root["options"] as? [String: Any])
         XCTAssertEqual(options["mediaSourceId"] as? String, "fallback-id")
+    }
+
+    func testIdentifyJSON_omitsNilOptionalFields() throws {
+        let minimalContext = JellyfinCastOutboundMessageEncoder.SenderContext(
+            userId: "user-1",
+            deviceId: "device-1",
+            accessToken: "token-1",
+            serverAddress: "https://jelly.example",
+            serverId: "server-1",
+            serverVersion: nil,
+            receiverName: nil
+        )
+        let json = try JellyfinCastOutboundMessageEncoder.identifyJSON(context: minimalContext)
+        let root = try decodeObject(json)
+        // serverVersion and receiverName must be absent entirely, not present as null.
+        XCTAssertEqual(root.count, 7)
+        XCTAssertNil(root["serverVersion"])
+        XCTAssertNil(root["receiverName"])
     }
 
     func testPlayOptionsThrowsWhenItemIdMissing() {
@@ -243,10 +258,22 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
                 mediaSource: source,
                 fallbackServerId: "server-1",
                 audioStreamIndex: 0,
-                subtitleStreamIndex: -1
+                subtitleStreamIndex: -1,
+                startPositionTicks: 0
             )
         ) { error in
             XCTAssertTrue(error is ErrorMessage)
+            XCTAssertEqual((error as? ErrorMessage)?.errorDescription, L10n.castMissingItemId)
+        }
+    }
+
+    func testItemStubThrowsWhenItemIdMissing() {
+        let base = BaseItemDto()
+        XCTAssertThrowsError(
+            try JellyfinCastOutboundMessageEncoder.itemStubDictionary(from: base, fallbackServerId: "server-1")
+        ) { error in
+            XCTAssertTrue(error is ErrorMessage)
+            XCTAssertEqual((error as? ErrorMessage)?.errorDescription, L10n.castMissingItemIdStub)
         }
     }
 

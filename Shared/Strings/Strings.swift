@@ -268,6 +268,32 @@ internal enum L10n {
   internal static let capabilities = L10n.tr("Localizable", "capabilities", fallback: "Capabilities")
   /// Cast & crew
   internal static let castAndCrew = L10n.tr("Localizable", "castAndCrew", fallback: "Cast & crew")
+  /// Failed to register the Chromecast control channel with the Cast session.
+  internal static let castChannelRegistrationError = L10n.tr("Localizable", "castChannelRegistrationError", fallback: "Unable to register Chromecast control channel.")
+  /// Attempted to send a Cast message but the channel is not yet open.
+  internal static let castChannelNotReady = L10n.tr("Localizable", "castChannelNotReady", fallback: "Chromecast channel is not ready.")
+  /// Generic Cast connection error surfaced from the receiver.
+  internal static let castConnectionError = L10n.tr("Localizable", "castConnectionError", fallback: "Cast connection error. Check Wi-Fi and try again.")
+  /// The GCK send call returned false and no GCKError was provided.
+  internal static let castMessageSendError = L10n.tr("Localizable", "castMessageSendError", fallback: "Failed to send Chromecast message.")
+  /// Cast attempted to send a message but no signed-in Jellyfin session could be found.
+  internal static let castSessionLoadError = L10n.tr("Localizable", "castSessionLoadError", fallback: "Could not load your Jellyfin session for Cast. Return to the library, confirm you are signed in, then try again.")
+  /// Chromecast cannot reach a localhost server. Add a LAN or HTTPS address in Swiftfin settings, or ensure Jellyfin reports a valid Local Address.
+  internal static let castLocalhostServerError = L10n.tr("Localizable", "castLocalhostServerError", fallback: "Chromecast cannot reach a localhost server. Add a LAN or HTTPS address in Swiftfin settings, or ensure Jellyfin reports a valid Local Address.")
+  /// Missing item ID when building a Chromecast PlayNow payload.
+  internal static let castMissingItemId = L10n.tr("Localizable", "castMissingItemId", fallback: "Missing item ID for Chromecast playback.")
+  /// Missing item ID when building a Chromecast item stub.
+  internal static let castMissingItemIdStub = L10n.tr("Localizable", "castMissingItemIdStub", fallback: "Missing item ID for Chromecast item stub.")
+  /// Failed to serialize the outbound Chromecast message to UTF-8 JSON.
+  internal static let castMessageEncodeError = L10n.tr("Localizable", "castMessageEncodeError", fallback: "Unable to encode Chromecast message.")
+  /// If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.
+  internal static let castNetworkErrorHint = L10n.tr("Localizable", "castNetworkErrorHint", fallback: "If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.")
+  /// TV playback failed — no error code available.
+  internal static let castPlaybackError = L10n.tr("Localizable", "castPlaybackError", fallback: "Playback on the TV failed. Check Jellyfin or your network.")
+  /// TV playback failed with a specific receiver error code.
+  internal static func castPlaybackErrorCode(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "castPlaybackErrorCode", String(describing: p1), fallback: "Playback on the TV failed (%@). Check Jellyfin or your network.")
+  }
   /// Category
   internal static let category = L10n.tr("Localizable", "category", fallback: "Category")
   /// Change pin
@@ -438,6 +464,8 @@ internal enum L10n {
   internal static let dateAdded = L10n.tr("Localizable", "dateAdded", fallback: "Date added")
   /// Date created
   internal static let dateCreated = L10n.tr("Localizable", "dateCreated", fallback: "Date created")
+  /// Date of last added content
+  internal static let dateLastContentAdded = L10n.tr("Localizable", "dateLastContentAdded", fallback: "Date of last added content")
   /// Date modified
   internal static let dateModified = L10n.tr("Localizable", "dateModified", fallback: "Date modified")
   /// Date of death

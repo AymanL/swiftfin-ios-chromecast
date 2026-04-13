@@ -6,13 +6,10 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import Factory
 import SwiftUI
-
-#if os(iOS)
+import Transmission
 import UIKit
-#endif
 
 struct VideoPlayer: View {
 
@@ -20,6 +17,9 @@ struct VideoPlayer: View {
     private var presentationControllerShouldDismiss
     @Environment(\.presentationCoordinator)
     private var presentationCoordinator
+
+    @Environment(\.chromecastVideoPlayerCoordinator)
+    private var chromecastCoordinator: (any ChromecastVideoPlayerCoordinating)?
 
     @InjectedObject(\.mediaPlayerManager)
     private var manager: MediaPlayerManager
@@ -46,15 +46,7 @@ struct VideoPlayer: View {
     private var containerState: VideoPlayerContainerState = .init()
 
     init() {
-        #if DEBUG
-        if Defaults[.useChromecastStubVideoProxy] {
-            self._proxy = .init(wrappedValue: ChromecastStubVideoMediaPlayerProxy())
-        } else {
-            self._proxy = .init(wrappedValue: VLCMediaPlayerProxy())
-        }
-        #else
         self._proxy = .init(wrappedValue: VLCMediaPlayerProxy())
-        #endif
     }
 
     @ViewBuilder
@@ -72,18 +64,11 @@ struct VideoPlayer: View {
             manager.proxy = proxy
             manager.start()
         }
-        #if os(iOS)
-        .onDisappear {
-            // While Cast is active, keep the session so the TV can keep playing (stop via Google Cast UI).
-            guard !GoogleCastSessionCoordinator.shared.isCastSessionActive else { return }
-            GoogleCastSessionCoordinator.shared.endCastSessionWhenDismissingPlayer()
-        }
-        #endif
     }
 
     var body: some View {
         containerView
-            .preference(key: IsStatusBarHiddenKey.self, value: !containerState.isPresentingOverlay)
+            .prefersStatusBarHidden(!containerState.isPresentingOverlay)
             .backport
             .onChange(of: audioOffset) { _, newValue in
                 if let proxy = proxy as? MediaPlayerOffsetConfigurable {
@@ -110,9 +95,9 @@ struct VideoPlayer: View {
                 manager.seconds = scrubbedSeconds
                 proxy.setSeconds(scrubbedSeconds)
 
-                #if os(iOS)
-                manager.mirrorChromecastSeekToTargetSecondsIfControlling(scrubbedSeconds.seconds)
-                #endif
+                chromecastCoordinator?.sendChromecastSeekWhenControlling(
+                    positionSeconds: scrubbedSeconds.seconds
+                )
             }
             .backport
             .onChange(of: subtitleOffset) { _, newValue in
@@ -137,36 +122,23 @@ struct VideoPlayer: View {
 
                 // TODO: move to container view
                 containerState.scrubbedSeconds.value = newItem?.baseItem.startSeconds ?? .zero
-
-                #if os(iOS)
-                if GoogleCastSessionCoordinator.shared.isCastSessionActive {
-                    GoogleCastSessionCoordinator.shared.queueChromecastLoad(playbackItem: newItem)
-                }
-                #endif
             }
-        #if os(iOS)
-            .onReceive(GoogleCastSessionCoordinator.shared.$isCastSessionActive) { isActive in
-                guard isActive else { return }
-                GoogleCastSessionCoordinator.shared.queueChromecastLoad(playbackItem: manager.playbackItem)
-            }
-        #endif
             .onReceive(manager.$state) { newState in
-                    if newState == .stopped, !isBeingDismissedByTransition {
-                        router.dismiss()
-                    }
+                if newState == .stopped, !isBeingDismissedByTransition {
+                    router.dismiss()
                 }
-
-                .alert(
-                    L10n.error,
-                    isPresented: .constant(manager.error != nil)
-                ) {
-                    Button(L10n.close, role: .cancel) {
-                        Container.shared.mediaPlayerManager.reset()
-                        router.dismiss()
-                    }
-                } message: {
-                    // TODO: localize
-                    Text("Unable to load this item.")
+            }
+            .alert(
+                L10n.error,
+                isPresented: .constant(manager.error != nil)
+            ) {
+                Button(L10n.close, role: .cancel) {
+                    Container.shared.mediaPlayerManager.reset()
+                    router.dismiss()
                 }
+            } message: {
+                // TODO: localize
+                Text("Unable to load this item.")
+            }
     }
 }

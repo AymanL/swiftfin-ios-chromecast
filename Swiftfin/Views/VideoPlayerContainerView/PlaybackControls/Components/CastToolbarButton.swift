@@ -9,7 +9,7 @@
 import GoogleCast
 import SwiftUI
 
-/// Google Cast device picker entry point (Phase 2). Uses the SDK default expanded controller.
+/// Google Cast device picker entry point. Uses the SDK default expanded controller.
 struct CastToolbarButton: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator {
@@ -19,6 +19,7 @@ struct CastToolbarButton: UIViewRepresentable {
     func makeUIView(context: Context) -> GCKUICastButton {
         let button = GCKUICastButton(frame: .zero)
         button.tintColor = .white
+        button.accessibilityLabel = "Cast"
         // After a receiver drops off the network (e.g. TV power cycle), the device list can stay stale
         // until discovery runs again; nudge before the SDK presents the Cast dialog.
         button.addTarget(

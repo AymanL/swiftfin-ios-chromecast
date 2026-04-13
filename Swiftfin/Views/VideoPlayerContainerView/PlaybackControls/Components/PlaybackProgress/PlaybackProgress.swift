@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Combine
 import Defaults
 import JellyfinAPI
 import SwiftUI
@@ -159,16 +158,7 @@ extension VideoPlayer.PlaybackControls {
                         .frame(maxWidth: isScrubbing ? nil : max(0, sliderSize.width - EdgeInsets.edgePadding * 2))
                 }
             }
-            .onReceive(
-                manager.secondsBox.$value.receive(on: DispatchQueue.main)
-            ) { newSeconds in
-                guard MediaPlayerManager.chromecastRoutesPlaybackControls?() == true,
-                      !isScrubbing
-                else { return }
-                if scrubbedSecondsBox.value != newSeconds {
-                    scrubbedSecondsBox.value = newSeconds
-                }
-            }
+            .chromecastScrubberSync(manager: manager, scrubbedSecondsBox: scrubbedSecondsBox, isScrubbing: isScrubbing)
             .frame(maxWidth: .infinity)
             .animation(.bouncy(duration: 0.4, extraBounce: 0.1), value: isScrubbing)
             .overlay(alignment: .topLeading) {

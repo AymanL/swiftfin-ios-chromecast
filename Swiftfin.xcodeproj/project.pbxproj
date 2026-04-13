@@ -1142,7 +1142,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = A6AZS2Q3UZ;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1182,7 +1182,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = A6AZS2Q3UZ;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1411,7 +1411,7 @@
 			repositoryURL = "https://github.com/nathantannar4/Transmission";
 			requirement = {
 				kind = exactVersion;
-				version = 2.4.5;
+				version = 2.8.3;
 			};
 		};
 		E176EBDC2D050067009F4CF1 /* XCRemoteSwiftPackageReference "swift-identified-collections" */ = {

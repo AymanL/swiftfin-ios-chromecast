@@ -12,6 +12,10 @@ import JellyfinAPI
 /// Picks a server base URL the Chromecast can reach (parity: jellyfin-web `sendMessage` localhost handling).
 enum JellyfinCastServerAddressResolver {
 
+    private static let loopbackHostname = "localhost"
+    private static let loopbackIPv6 = "[::1]"
+    private static let loopbackIPv4Prefix = "127."
+
     /// Returns a base URL string (no trailing slash) for the Cast receiver to call the Jellyfin API.
     static func serverURLStringForChromecast(
         client: JellyfinClient,
@@ -24,9 +28,7 @@ enum JellyfinCastServerAddressResolver {
             return absolute
         }
 
-        let loopback = isLoopbackHost(host)
-
-        if !loopback {
+        if !isLoopbackHost(host) {
             return absolute
         }
 
@@ -35,18 +37,15 @@ enum JellyfinCastServerAddressResolver {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         guard !local.isEmpty, URL(string: local)?.host != nil else {
-            throw ErrorMessage(
-                "Chromecast cannot use a localhost server URL. Add a LAN or HTTPS server address in Swiftfin, or ensure Jellyfin reports a valid LocalAddress."
-            )
+            throw ErrorMessage(L10n.castLocalhostServerError)
         }
 
         return local.trimmingSuffix("/")
     }
 
     private static func isLoopbackHost(_ host: String) -> Bool {
-        if host == "localhost" { return true }
-        if host == "[::1]" { return true }
-        if host.hasPrefix("127.") { return true }
-        return false
+        host == loopbackHostname
+            || host == loopbackIPv6
+            || host.hasPrefix(loopbackIPv4Prefix)
     }
 }
