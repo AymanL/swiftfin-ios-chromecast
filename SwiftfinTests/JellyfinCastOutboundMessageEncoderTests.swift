@@ -75,16 +75,22 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         XCTAssertEqual(root["receiverName"] as? String, "Living Room TV")
         let options = try XCTUnwrap(root["options"] as? [String: Any])
         XCTAssertTrue(options.isEmpty)
-
-        XCTAssertEqual(root.count, 9)
     }
 
     func testIdentifyJSON_omitsOptionalServerVersionAndReceiverName() throws {
         let json = try JellyfinCastOutboundMessageEncoder.identifyJSON(context: minimalContext)
         let root = try decodeObject(json)
+        // Optional keys must be absent entirely, not present as null.
         XCTAssertNil(root["serverVersion"])
         XCTAssertNil(root["receiverName"])
-        XCTAssertEqual(root.count, 7)
+        // Required keys must all be present.
+        XCTAssertEqual(root["command"] as? String, "Identify")
+        XCTAssertEqual(root["userId"] as? String, "user-1")
+        XCTAssertEqual(root["deviceId"] as? String, "device-1")
+        XCTAssertEqual(root["accessToken"] as? String, "token-1")
+        XCTAssertEqual(root["serverAddress"] as? String, "https://jelly.example")
+        XCTAssertEqual(root["serverId"] as? String, "server-1")
+        XCTAssertNotNil(root["options"])
     }
 
     func testPlayNowJSON_itemStubAndPlayOptions() throws {
@@ -202,9 +208,17 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         )
 
         let root = try decodeObject(json)
+        // Optional keys must be absent entirely, not present as null.
         XCTAssertNil(root["serverVersion"])
         XCTAssertNil(root["receiverName"])
-        XCTAssertEqual(root.count, 7)
+        // Required keys must all be present.
+        XCTAssertEqual(root["command"] as? String, "PlayNow")
+        XCTAssertEqual(root["userId"] as? String, "user-1")
+        XCTAssertEqual(root["deviceId"] as? String, "device-1")
+        XCTAssertEqual(root["accessToken"] as? String, "token-1")
+        XCTAssertEqual(root["serverAddress"] as? String, "https://jelly.example")
+        XCTAssertEqual(root["serverId"] as? String, "server-1")
+        XCTAssertNotNil(root["options"])
     }
 
     func testPlayNowUsesItemIdWhenMediaSourceIdNil() throws {
@@ -244,9 +258,15 @@ final class JellyfinCastOutboundMessageEncoderTests: XCTestCase {
         let json = try JellyfinCastOutboundMessageEncoder.identifyJSON(context: minimalContext)
         let root = try decodeObject(json)
         // serverVersion and receiverName must be absent entirely, not present as null.
-        XCTAssertEqual(root.count, 7)
         XCTAssertNil(root["serverVersion"])
         XCTAssertNil(root["receiverName"])
+        XCTAssertEqual(root["command"] as? String, "Identify")
+        XCTAssertEqual(root["userId"] as? String, "user-1")
+        XCTAssertEqual(root["deviceId"] as? String, "device-1")
+        XCTAssertEqual(root["accessToken"] as? String, "token-1")
+        XCTAssertEqual(root["serverAddress"] as? String, "https://jelly.example")
+        XCTAssertEqual(root["serverId"] as? String, "server-1")
+        XCTAssertNotNil(root["options"])
     }
 
     func testPlayOptionsThrowsWhenItemIdMissing() {

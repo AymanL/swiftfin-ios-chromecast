@@ -58,7 +58,11 @@ final class JellyfinCastInboundMessageTests: XCTestCase {
         XCTAssertEqual(paused, false)
     }
 
-    func testPlaybackStart_flatPlayState_NSNumberPositionTicks() {
+    // JSONSerialization deserialises JSON numbers as NSNumber, not Int. The flat-data
+    // shape (PositionTicks directly inside `data`, no nested PlayState) exercises the
+    // NSNumber → Int coercion path in extractPlayState. This test guards against
+    // regressions where a plain `as? Int` cast on an NSNumber would silently return nil.
+    func testPlaybackStart_flatPayloadShape_ticksAndPause() {
         let json = """
         {"type":"playbackstart","data":{"PositionTicks":99,"IsPaused":true}}
         """
@@ -114,5 +118,16 @@ final class JellyfinCastInboundMessageTests: XCTestCase {
 
     func testInvalidJSON_returnsNil() {
         XCTAssertNil(JellyfinCastInboundMessage.parse(jsonString: "not-json"))
+    }
+
+    func testMissingTypeField_returnsNil() {
+        let json = #"{"data":{"PositionTicks":100}}"#
+        XCTAssertNil(JellyfinCastInboundMessage.parse(jsonString: json))
+    }
+
+    func testTypeFieldNotString_returnsNil() {
+        // `type` must be a String; a numeric type must not produce a spurious match.
+        let json = #"{"type":42,"data":{}}"#
+        XCTAssertNil(JellyfinCastInboundMessage.parse(jsonString: json))
     }
 }
