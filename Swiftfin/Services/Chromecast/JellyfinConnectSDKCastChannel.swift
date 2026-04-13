@@ -26,6 +26,13 @@ final class JellyfinConnectSDKCastChannel: GCKCastChannel {
         }
     }
 
+    override func didReceiveTextMessage(_ message: String) {
+        super.didReceiveTextMessage(message)
+        Task { @MainActor in
+            owner?.handleConnectSDKInboundText(message)
+        }
+    }
+
     override func didDisconnect() {
         super.didDisconnect()
         Task { @MainActor in

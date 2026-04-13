@@ -156,11 +156,19 @@ extension VLCMediaPlayerProxy {
                 VLCVideoPlayer(configuration: vlcConfiguration(for: playbackItem))
                     .proxy(proxy)
                     .onSecondsUpdated { newSeconds, info in
-                        if !isScrubbing {
-                            containerState.scrubbedSeconds.value = newSeconds
-                        }
+                        if MediaPlayerManager.chromecastRouter?.routesPlaybackControls() == true {
+                            // Local VLC stays paused while the TV decodes; its time is frozen at handoff.
+                            // Do not overwrite `manager.seconds` — it is driven by Jellyfin Cast inbound progress.
+                            if !isScrubbing {
+                                containerState.scrubbedSeconds.value = manager.seconds
+                            }
+                        } else {
+                            if !isScrubbing {
+                                containerState.scrubbedSeconds.value = newSeconds
+                            }
 
-                        manager.seconds = newSeconds
+                            manager.seconds = newSeconds
+                        }
 
                         if let proxy = manager.proxy as? any VideoMediaPlayerProxy {
                             proxy.videoSize.value = info.videoSize
@@ -168,6 +176,9 @@ extension VLCMediaPlayerProxy {
                     }
                     .onStateUpdated { state, info in
                         manager.logger.trace("VLC state updated: \(state)")
+
+                        // Evaluated once per state update; checked in .playing and .paused below.
+                        let routesChromecastControls = MediaPlayerManager.chromecastRouter?.routesPlaybackControls() ?? false
 
                         switch state {
                         case .buffering,
@@ -189,9 +200,14 @@ extension VLCMediaPlayerProxy {
                             manager.error(ErrorMessage("VLC player is unable to perform playback"))
                         case .playing:
                             manager.proxy?.isBuffering.value = false
-                            manager.setPlaybackRequestStatus(status: .playing)
+                            // When Cast is active, the receiver drives playback state; do not mirror Play to the receiver.
+                            if !routesChromecastControls {
+                                manager.setPlaybackRequestStatus(status: .playing)
+                            }
                         case .paused:
-                            manager.setPlaybackRequestStatus(status: .paused)
+                            if !routesChromecastControls {
+                                manager.setPlaybackRequestStatus(status: .paused)
+                            }
                         }
 
                         if let proxy = manager.proxy as? any VideoMediaPlayerProxy {

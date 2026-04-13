@@ -179,6 +179,63 @@ final class MediaPlayerManager: ViewModel {
         }
     }
 
+    // MARK: Chromecast (receiver → UI; seek mirror)
+
+    /// Applies TV-reported state without echoing pause/unpause back to the receiver.
+    @MainActor
+    func applyChromecastInboundPlaybackState(positionTicks: Int?, isPaused: Bool?) {
+        if let ticks = positionTicks {
+            let d = Duration.ticks(ticks)
+            if seconds != d {
+                // Keep the scrubber / timestamps aligned with the TV only. Do not seek the local VLC proxy
+                // while Cast drives playback (it stays paused); repeated `setSeconds` there can yield black
+                // video or audio-only glitches on device even though the TV plays fine.
+                seconds = d
+            }
+        }
+        if let paused = isPaused {
+            let target: PlaybackRequestStatus = paused ? .paused : .playing
+            guard playbackRequestStatus != target else { return }
+            playbackRequestStatus = target
+            if Self.chromecastRouter?.routesPlaybackControls() == true {
+                proxy?.pause()
+            } else {
+                switch target {
+                case .paused:
+                    proxy?.pause()
+                case .playing:
+                    proxy?.play()
+                }
+            }
+        }
+    }
+
+    /// After Cast ends or the control channel is lost while the TV was driving playback.
+    /// - Parameter lastTVPositionTicks: Last Jellyfin ticks reported by the receiver while casting; aligns local scrubber and VLC before
+    /// resuming on-device playback.
+    @MainActor
+    func applyChromecastSessionEndedFromReceiver(lastTVPositionTicks: Int? = nil) {
+        if let ticks = lastTVPositionTicks {
+            let d = Duration.ticks(ticks)
+            seconds = d
+            proxy?.setSeconds(d)
+        }
+
+        playbackRequestStatus = .paused
+        proxy?.pause()
+    }
+
+    @MainActor
+    func mirrorChromecastSeekToTargetSecondsIfControlling(_ positionSeconds: Double) {
+        Self.chromecastRouter?.seekWhenControlling(positionSeconds: positionSeconds)
+    }
+
+    @MainActor
+    func mirrorChromecastSeekAfterLocalJump(delta: Duration) {
+        let target = max(.zero, seconds + delta).seconds
+        Self.chromecastRouter?.seekWhenControlling(positionSeconds: target)
+    }
+
     private var itemBuildTask: AnyCancellable?
 
     private var initialMediaPlayerItemProvider: MediaPlayerItemProvider?

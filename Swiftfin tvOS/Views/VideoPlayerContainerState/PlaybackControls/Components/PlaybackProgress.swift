@@ -107,6 +107,7 @@ extension VideoPlayer.PlaybackControls {
                     SplitTimeStamp()
                 }
             }
+            .chromecastScrubberSync(manager: manager, scrubbedSecondsBox: scrubbedSecondsBox, isScrubbing: isScrubbing)
             .focused($isFocused)
             .scaleEffect(isFocused ? 1.0 : 0.95)
             .animation(.easeInOut(duration: 0.3), value: isFocused)

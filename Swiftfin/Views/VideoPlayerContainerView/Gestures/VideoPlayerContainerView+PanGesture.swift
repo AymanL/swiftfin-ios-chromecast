@@ -170,6 +170,7 @@ extension VideoPlayer.UIVideoPlayerContainerViewController {
         if direction == .left {
             let interval = Defaults[.VideoPlayer.jumpBackwardInterval]
             containerState.manager?.proxy?.jumpBackward(interval.rawValue)
+            containerState.manager?.mirrorChromecastSeekAfterLocalJump(delta: .zero - interval.rawValue)
             jumpProgressObserver.jumpBackward()
 
             containerState.toastProxy.present(
@@ -182,6 +183,7 @@ extension VideoPlayer.UIVideoPlayerContainerViewController {
         } else if direction == .right {
             let interval = Defaults[.VideoPlayer.jumpForwardInterval]
             containerState.manager?.proxy?.jumpForward(interval.rawValue)
+            containerState.manager?.mirrorChromecastSeekAfterLocalJump(delta: interval.rawValue)
             jumpProgressObserver.jumpForward()
 
             containerState.toastProxy.present(

@@ -152,6 +152,7 @@ extension VideoPlayer {
                     ) {
                         containerState.jumpProgressObserver.jumpBackward()
                         manager.proxy?.jumpBackward(jumpBackwardInterval.rawValue)
+                        manager.mirrorChromecastSeekAfterLocalJump(delta: .zero - jumpBackwardInterval.rawValue)
 
                         toaster.present(
                             Text(
@@ -170,6 +171,7 @@ extension VideoPlayer {
                     ) {
                         containerState.jumpProgressObserver.jumpForward()
                         manager.proxy?.jumpForward(jumpForwardInterval.rawValue)
+                        manager.mirrorChromecastSeekAfterLocalJump(delta: jumpForwardInterval.rawValue)
 
                         toaster.present(
                             Text(

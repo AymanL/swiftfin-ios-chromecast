@@ -158,6 +158,7 @@ extension VideoPlayer.PlaybackControls {
                         .frame(maxWidth: isScrubbing ? nil : max(0, sliderSize.width - EdgeInsets.edgePadding * 2))
                 }
             }
+            .chromecastScrubberSync(manager: manager, scrubbedSecondsBox: scrubbedSecondsBox, isScrubbing: isScrubbing)
             .frame(maxWidth: .infinity)
             .animation(.bouncy(duration: 0.4, extraBounce: 0.1), value: isScrubbing)
             .overlay(alignment: .topLeading) {

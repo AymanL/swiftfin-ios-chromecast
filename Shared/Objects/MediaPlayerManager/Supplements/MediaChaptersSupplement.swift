@@ -106,6 +106,7 @@ extension MediaChaptersSupplement {
                 ChapterRow(chapter: chapter) {
                     guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
                     manager.proxy?.setSeconds(startSeconds)
+                    manager.mirrorChromecastSeekToTargetSecondsIfControlling(startSeconds.seconds)
                     manager.setPlaybackRequestStatus(status: .playing)
                 }
                 .edgePadding(.horizontal)
@@ -123,6 +124,7 @@ extension MediaChaptersSupplement {
                 ChapterButton(chapter: chapter) {
                     guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
                     manager.proxy?.setSeconds(startSeconds)
+                    manager.mirrorChromecastSeekToTargetSecondsIfControlling(startSeconds.seconds)
                     manager.setPlaybackRequestStatus(status: .playing)
                 }
                 .frame(height: 150)

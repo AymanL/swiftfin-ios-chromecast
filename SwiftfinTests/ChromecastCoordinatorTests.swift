@@ -24,6 +24,10 @@ final class FakeChromecastSessionCoordinator: ChromecastSessionCoordinating, Obs
     }
 
     func endCastSession() {}
+
+    func stopCastingFromPlayer() {
+        isCastSessionActive = false
+    }
 }
 
 @MainActor
@@ -56,5 +60,12 @@ final class ChromecastCoordinatorTests: XCTestCase {
         let fake = FakeChromecastSessionCoordinator()
         fake.isCastSessionActive = true
         XCTAssertTrue(fake.isCastSessionActive)
+    }
+
+    func testStopCastingFromPlayerDeactivatesSession() {
+        let fake = FakeChromecastSessionCoordinator()
+        fake.isCastSessionActive = true
+        fake.stopCastingFromPlayer()
+        XCTAssertFalse(fake.isCastSessionActive)
     }
 }

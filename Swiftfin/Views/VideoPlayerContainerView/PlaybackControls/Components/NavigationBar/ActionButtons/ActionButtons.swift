@@ -26,6 +26,9 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         @EnvironmentObject
         private var manager: MediaPlayerManager
 
+        @ObservedObject
+        private var castCoordinator = GoogleCastSessionCoordinator.shared
+
         private func filteredActionButtons(_ rawButtons: [VideoPlayerActionButton]) -> [VideoPlayerActionButton] {
             var filteredButtons = rawButtons
 
@@ -87,8 +90,25 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         }
 
         @ViewBuilder
-        private var castButton: some View {
+        private var stopCastingToolbarButton: some View {
+            if castCoordinator.routesPlaybackControlsToChromecast {
+                Button {
+                    castCoordinator.stopCastingFromPlayer()
+                } label: {
+                    Image(systemName: "airplayaudio.circle.badge.xmark")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.primary)
+                }
+                .accessibilityLabel(L10n.stopChromecastCasting)
+                .frame(width: 44, height: 44)
+            }
+        }
+
+        /// Stop-casting button + cast picker, shown only on iPhone.
+        @ViewBuilder
+        private var castToolbarButtons: some View {
             if UIDevice.isPhone {
+                stopCastingToolbarButton
                 CastToolbarButton()
                     .frame(width: 44, height: 44)
             }
@@ -97,7 +117,7 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         @ViewBuilder
         private var compactView: some View {
             HStack(spacing: 0) {
-                castButton
+                castToolbarButtons
 
                 Menu(
                     L10n.menu,
@@ -123,7 +143,7 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         @ViewBuilder
         private var regularView: some View {
             HStack(spacing: 0) {
-                castButton
+                castToolbarButtons
 
                 ForEach(
                     barActionButtons,

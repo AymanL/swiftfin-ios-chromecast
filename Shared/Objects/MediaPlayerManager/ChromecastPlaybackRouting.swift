@@ -16,4 +16,7 @@ protocol ChromecastPlaybackRouting: AnyObject {
 
     /// Forwards a play/pause state change to the Cast receiver.
     func mirrorPlaybackRequest(_ status: MediaPlayerManager.PlaybackRequestStatus) async
+
+    /// Forwards a seek to the Cast receiver.
+    func seekWhenControlling(positionSeconds: Double)
 }

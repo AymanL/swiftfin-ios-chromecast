@@ -15,6 +15,24 @@ import SwiftUI
 
 extension View {
 
+    /// Keeps `scrubbedSecondsBox` in sync with `manager.seconds` while Chromecast is driving playback.
+    /// Replaces a duplicated `.onReceive` block that appeared in both iOS and tvOS `PlaybackProgress`.
+    func chromecastScrubberSync(
+        manager: MediaPlayerManager,
+        scrubbedSecondsBox: PublishedBox<Duration>,
+        isScrubbing: Bool
+    ) -> some View {
+        onReceive(manager.secondsBox.$value.receive(on: DispatchQueue.main)) { newSeconds in
+            guard MediaPlayerManager.chromecastRouter?.routesPlaybackControls() == true,
+                  !isScrubbing
+            else { return }
+            if scrubbedSecondsBox.value != newSeconds {
+                scrubbedSecondsBox.value = newSeconds
+            }
+        }
+    }
+}
+
     @inlinable
     func enabled(_ enabled: Bool) -> some View {
         disabled(!enabled)
