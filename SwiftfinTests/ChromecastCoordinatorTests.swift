@@ -19,8 +19,6 @@ final class FakeChromecastSessionCoordinator: ChromecastSessionCoordinating, Obs
     @Published
     var isCastSessionActive: Bool = false
 
-    private(set) var stopCastingCallCount = 0
-
     func clearSessionError() {
         sessionErrorMessage = nil
     }
@@ -28,7 +26,6 @@ final class FakeChromecastSessionCoordinator: ChromecastSessionCoordinating, Obs
     func endCastSession() {}
 
     func stopCastingFromPlayer() {
-        stopCastingCallCount += 1
         isCastSessionActive = false
     }
 }
@@ -65,9 +62,10 @@ final class ChromecastCoordinatorTests: XCTestCase {
         XCTAssertTrue(fake.isCastSessionActive)
     }
 
-    func testStopCastingFromPlayerIsRecorded() {
+    func testStopCastingFromPlayerDeactivatesSession() {
         let fake = FakeChromecastSessionCoordinator()
+        fake.isCastSessionActive = true
         fake.stopCastingFromPlayer()
-        XCTAssertEqual(fake.stopCastingCallCount, 1)
+        XCTAssertFalse(fake.isCastSessionActive)
     }
 }

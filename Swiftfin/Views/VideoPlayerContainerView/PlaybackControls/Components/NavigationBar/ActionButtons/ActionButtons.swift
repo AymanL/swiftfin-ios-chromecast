@@ -104,14 +104,20 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
             }
         }
 
+        /// Stop-casting button + cast picker, shown only on iPhone.
+        @ViewBuilder
+        private var castToolbarButtons: some View {
+            if UIDevice.isPhone {
+                stopCastingToolbarButton
+                CastToolbarButton()
+                    .frame(width: 44, height: 44)
+            }
+        }
+
         @ViewBuilder
         private var compactView: some View {
             HStack(spacing: 0) {
-                if UIDevice.isPhone {
-                    stopCastingToolbarButton
-                    CastToolbarButton()
-                        .frame(width: 44, height: 44)
-                }
+                castToolbarButtons
 
                 Menu(
                     L10n.menu,
@@ -137,11 +143,7 @@ extension VideoPlayer.PlaybackControls.NavigationBar {
         @ViewBuilder
         private var regularView: some View {
             HStack(spacing: 0) {
-                if UIDevice.isPhone {
-                    stopCastingToolbarButton
-                    CastToolbarButton()
-                        .frame(width: 44, height: 44)
-                }
+                castToolbarButtons
 
                 ForEach(
                     barActionButtons,

@@ -177,6 +177,9 @@ extension VLCMediaPlayerProxy {
                     .onStateUpdated { state, info in
                         manager.logger.trace("VLC state updated: \(state)")
 
+                        // Evaluated once per state update; checked in .playing and .paused below.
+                        let routesChromecastControls = MediaPlayerManager.chromecastRouter?.routesPlaybackControls() ?? false
+
                         switch state {
                         case .buffering,
                              .esAdded,
@@ -197,13 +200,11 @@ extension VLCMediaPlayerProxy {
                             manager.error(ErrorMessage("VLC player is unable to perform playback"))
                         case .playing:
                             manager.proxy?.isBuffering.value = false
-                            let routesChromecastControls = MediaPlayerManager.chromecastRouter?.routesPlaybackControls() ?? false
                             // When Cast is active, the receiver drives playback state; do not mirror Play to the receiver.
                             if !routesChromecastControls {
                                 manager.setPlaybackRequestStatus(status: .playing)
                             }
                         case .paused:
-                            let routesChromecastControls = MediaPlayerManager.chromecastRouter?.routesPlaybackControls() ?? false
                             if !routesChromecastControls {
                                 manager.setPlaybackRequestStatus(status: .paused)
                             }

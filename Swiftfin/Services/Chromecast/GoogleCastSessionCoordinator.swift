@@ -48,7 +48,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     private var cancellables: Set<AnyCancellable> = []
 
     #if os(iOS)
-    private static var didRegisterForegroundDiscoveryObserver = false
+    private var foregroundDiscoveryObserver: NSObjectProtocol?
     #endif
 
     /// True after a `PlayNow` was sent for this Cast session; phone controls should target the TV.
@@ -75,15 +75,14 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
             .store(in: &cancellables)
 
         #if os(iOS)
-        Self.registerForegroundCastDiscoveryRefreshIfNeeded()
+        registerForegroundCastDiscoveryRefreshIfNeeded()
         #endif
     }
 
     #if os(iOS)
-    private static func registerForegroundCastDiscoveryRefreshIfNeeded() {
-        guard !didRegisterForegroundDiscoveryObserver else { return }
-        didRegisterForegroundDiscoveryObserver = true
-        NotificationCenter.default.addObserver(
+    private func registerForegroundCastDiscoveryRefreshIfNeeded() {
+        guard foregroundDiscoveryObserver == nil else { return }
+        foregroundDiscoveryObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.willEnterForegroundNotification,
             object: nil,
             queue: .main
@@ -198,7 +197,7 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         case let .playbackError(code):
             sessionErrorMessage = Self.userFacingChromecastPlaybackError(code)
         case let .connectionError(detail):
-            sessionErrorMessage = detail.map { "Cast: \($0)" } ?? "Cast connection error. Check Wi‑Fi and try again."
+            sessionErrorMessage = detail ?? L10n.castConnectionError
         }
     }
 
@@ -215,9 +214,9 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
 
     private static func userFacingChromecastPlaybackError(_ code: String?) -> String {
         if let code, !code.isEmpty {
-            return "Playback on the TV failed (\(code)). Check Jellyfin or your network."
+            return L10n.castPlaybackErrorCode(code)
         }
-        return "Playback on the TV failed. Check Jellyfin or your network."
+        return L10n.castPlaybackError
     }
 
     private func refreshConnectionState() {

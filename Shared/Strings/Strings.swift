@@ -272,6 +272,8 @@ internal enum L10n {
   internal static let castChannelRegistrationError = L10n.tr("Localizable", "castChannelRegistrationError", fallback: "Unable to register Chromecast control channel.")
   /// Attempted to send a Cast message but the channel is not yet open.
   internal static let castChannelNotReady = L10n.tr("Localizable", "castChannelNotReady", fallback: "Chromecast channel is not ready.")
+  /// Generic Cast connection error surfaced from the receiver.
+  internal static let castConnectionError = L10n.tr("Localizable", "castConnectionError", fallback: "Cast connection error. Check Wi-Fi and try again.")
   /// The GCK send call returned false and no GCKError was provided.
   internal static let castMessageSendError = L10n.tr("Localizable", "castMessageSendError", fallback: "Failed to send Chromecast message.")
   /// Cast attempted to send a message but no signed-in Jellyfin session could be found.
@@ -286,6 +288,12 @@ internal enum L10n {
   internal static let castMessageEncodeError = L10n.tr("Localizable", "castMessageEncodeError", fallback: "Unable to encode Chromecast message.")
   /// If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.
   internal static let castNetworkErrorHint = L10n.tr("Localizable", "castNetworkErrorHint", fallback: "If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.")
+  /// TV playback failed — no error code available.
+  internal static let castPlaybackError = L10n.tr("Localizable", "castPlaybackError", fallback: "Playback on the TV failed. Check Jellyfin or your network.")
+  /// TV playback failed with a specific receiver error code.
+  internal static func castPlaybackErrorCode(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "castPlaybackErrorCode", String(describing: p1), fallback: "Playback on the TV failed (%@). Check Jellyfin or your network.")
+  }
   /// Category
   internal static let category = L10n.tr("Localizable", "category", fallback: "Category")
   /// Change pin
