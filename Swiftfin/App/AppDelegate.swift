@@ -17,7 +17,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         let discoveryCriteria = GCKDiscoveryCriteria(applicationID: JellyfinCastReceiverID.stable)
-
         let options = GCKCastOptions(discoveryCriteria: discoveryCriteria)
         GCKCastContext.setSharedInstanceWith(options)
         return true
