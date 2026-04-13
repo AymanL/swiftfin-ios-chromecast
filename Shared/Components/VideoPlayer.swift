@@ -8,8 +8,8 @@
 
 import Factory
 import SwiftUI
-import UIKit
 import Transmission
+import UIKit
 
 struct VideoPlayer: View {
 
