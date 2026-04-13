@@ -268,6 +268,8 @@ internal enum L10n {
   internal static let capabilities = L10n.tr("Localizable", "capabilities", fallback: "Capabilities")
   /// Cast & crew
   internal static let castAndCrew = L10n.tr("Localizable", "castAndCrew", fallback: "Cast & crew")
+  /// If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.
+  internal static let castNetworkErrorHint = L10n.tr("Localizable", "castNetworkErrorHint", fallback: "If Cast devices are missing, check Wi-Fi and allow Local Network access for this app in Settings.")
   /// Category
   internal static let category = L10n.tr("Localizable", "category", fallback: "Category")
   /// Change pin

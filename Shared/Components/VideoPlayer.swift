@@ -9,6 +9,7 @@
 import Factory
 import SwiftUI
 import Transmission
+import UIKit
 
 struct VideoPlayer: View {
 
@@ -60,6 +61,11 @@ struct VideoPlayer: View {
             manager.proxy = proxy
             manager.start()
         }
+        #if os(iOS)
+        .onDisappear {
+            GoogleCastSessionCoordinator.shared.endCastSession()
+        }
+        #endif
     }
 
     var body: some View {

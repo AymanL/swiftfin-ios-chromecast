@@ -205,6 +205,7 @@ extension VideoPlayer {
                 content: PlaybackControlsContainerView(playbackControls: playbackControls)
                     .environmentObject(containerState)
                     .environmentObject(manager)
+                    .environmentObject(GoogleCastSessionCoordinator.shared)
                     .eraseToAnyView()
             )
             controller.disablesSafeArea = true

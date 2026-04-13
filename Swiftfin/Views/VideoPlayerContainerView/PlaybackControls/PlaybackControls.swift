@@ -8,6 +8,7 @@
 
 import Defaults
 import SwiftUI
+import UIKit
 
 extension VideoPlayer {
 
@@ -22,6 +23,11 @@ extension VideoPlayer {
         private var containerState: VideoPlayerContainerState
         @EnvironmentObject
         private var manager: MediaPlayerManager
+
+        // @EnvironmentObject requires a concrete ObservableObject type; the protocol
+        // (ChromecastSessionCoordinating) is used only for test doubles.
+        @EnvironmentObject
+        private var castCoordinator: GoogleCastSessionCoordinator
 
         @State
         private var activeIsBuffering: Bool = false
@@ -93,6 +99,27 @@ extension VideoPlayer {
                 activeIsBuffering = newValue ?? false
             }
             .disabled(manager.error != nil)
+            .alert(
+                "Chromecast",
+                isPresented: .init(
+                    get: { castCoordinator.sessionErrorMessage != nil },
+                    set: { newValue in
+                        if !newValue { castCoordinator.clearSessionError() }
+                    }
+                )
+            ) {
+                Button(L10n.close, role: .cancel) {
+                    castCoordinator.clearSessionError()
+                }
+                Button(L10n.settings) {
+                    castCoordinator.clearSessionError()
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } message: {
+                Text(castCoordinator.sessionErrorMessage ?? "")
+            }
         }
     }
 }
