@@ -169,6 +169,9 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
         }
     }
 
+    /// Dispatches a parsed receiver to sender message to the media player manager or error state.
+    /// Only acts while `routesPlaybackControlsToChromecast` is true (i.e. a PlayNow has fired).
+    /// Progress updates are throttled to ≤4 Hz
     func handleConnectSDKInboundText(_ message: String) {
         guard routesPlaybackControlsToChromecast,
               let parsed = JellyfinCastInboundMessage.parse(jsonString: message)

@@ -16,15 +16,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        #if DEBUG
-        let useUnstable = Defaults[.useUnstableJellyfinChromecastReceiver]
-        #else
-        let useUnstable = false
-        #endif
+        let discoveryCriteria = GCKDiscoveryCriteria(applicationID: JellyfinCastReceiverID.stable)
 
-        let receiverAppID: String = useUnstable ? JellyfinCastReceiverID.unstable : JellyfinCastReceiverID.stable
-
-        let discoveryCriteria = GCKDiscoveryCriteria(applicationID: receiverAppID)
         let options = GCKCastOptions(discoveryCriteria: discoveryCriteria)
         GCKCastContext.setSharedInstanceWith(options)
         return true
