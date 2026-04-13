@@ -18,6 +18,9 @@ struct VideoPlayer: View {
     @Environment(\.presentationCoordinator)
     private var presentationCoordinator
 
+    @Environment(\.chromecastVideoPlayerCoordinator)
+    private var chromecastCoordinator: (any ChromecastVideoPlayerCoordinating)?
+
     @InjectedObject(\.mediaPlayerManager)
     private var manager: MediaPlayerManager
 
@@ -61,11 +64,6 @@ struct VideoPlayer: View {
             manager.proxy = proxy
             manager.start()
         }
-        #if os(iOS)
-        .onDisappear {
-            GoogleCastSessionCoordinator.shared.endCastSession()
-        }
-        #endif
     }
 
     var body: some View {
@@ -96,6 +94,10 @@ struct VideoPlayer: View {
                 let scrubbedSeconds = containerState.scrubbedSeconds.value
                 manager.seconds = scrubbedSeconds
                 proxy.setSeconds(scrubbedSeconds)
+
+                chromecastCoordinator?.sendChromecastSeekWhenControlling(
+                    positionSeconds: scrubbedSeconds.seconds
+                )
             }
             .backport
             .onChange(of: subtitleOffset) { _, newValue in
@@ -126,7 +128,6 @@ struct VideoPlayer: View {
                     router.dismiss()
                 }
             }
-
             .alert(
                 L10n.error,
                 isPresented: .constant(manager.error != nil)

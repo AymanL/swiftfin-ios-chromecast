@@ -49,6 +49,12 @@ import StatefulMacros
 @Stateful
 final class MediaPlayerManager: ViewModel {
 
+    // MARK: - Chromecast
+
+    /// Routes play/pause to the Cast receiver when a session is active.
+    /// Set by `GoogleCastSessionCoordinator` on iOS; nil on all other platforms.
+    static weak var chromecastRouter: (any ChromecastPlaybackRouting)?
+
     @CasePathable
     enum Action {
         case ended
@@ -280,6 +286,13 @@ final class MediaPlayerManager: ViewModel {
     private func set(_ status: PlaybackRequestStatus) {
         if self.playbackRequestStatus != status {
             self.playbackRequestStatus = status
+
+            if let router = Self.chromecastRouter, router.routesPlaybackControls() {
+                Task { await router.mirrorPlaybackRequest(status) }
+                // Keep local VLC paused regardless of direction; TV is the only decoder.
+                proxy?.pause()
+                return
+            }
 
             switch status {
             case .paused:
