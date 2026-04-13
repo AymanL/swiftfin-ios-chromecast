@@ -649,6 +649,9 @@
 /// Date created
 "dateCreated" = "Date created";
 
+/// Date of last added content
+"dateLastContentAdded" = "Date of last added content";
+
 /// Date modified
 "dateModified" = "Date modified";
 
