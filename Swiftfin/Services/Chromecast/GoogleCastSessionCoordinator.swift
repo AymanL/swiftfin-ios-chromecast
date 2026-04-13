@@ -105,31 +105,20 @@ final class GoogleCastSessionCoordinator: NSObject, ChromecastSessionCoordinatin
     }
 
     func endCastSession() {
-        let wasChromecastPlayback = lastPlayNowSignature != nil
-        let manager = sessionManager
-        if let session = manager.currentCastSession, let channel = connectSDKChannel {
-            _ = session.remove(channel)
-        }
-        connectSDKChannel = nil
-        sentIdentifyThisConnection = false
-        lastPlayNowSignature = nil
-        pendingChromecastPlaybackItem = nil
-        seekDebounceTask?.cancel()
-        seekDebounceTask = nil
-
-        guard manager.connectionState == .connected || manager.connectionState == .connecting else { return }
-        let submitted = manager.endSessionAndStopCasting(true)
-        if !submitted {
-            assertionFailure("endSessionAndStopCasting returned false despite active connection state")
-        }
-        // Do NOT call refreshConnectionState() here — the session teardown is async.
-        // isCastSessionActive will be updated by the sessionManager(_:didEnd:withError:) delegate callback.
-        if wasChromecastPlayback {
-            notifyMediaPlayerChromecastSessionEnded()
-        }
+        tearDownCastSession()
     }
 
     func stopCastingFromPlayer() {
+        tearDownCastSession()
+    }
+
+    /// Removes the Cast channel, clears all session state, and submits an end-session request
+    /// when a GCK connection is active. Also notifies the media player manager so it can hand
+    /// off the last TV-reported position before resuming local playback.
+    ///
+    /// - Note: Do NOT call `refreshConnectionState()` after this — GCK teardown is async.
+    ///   `isCastSessionActive` is updated by the `sessionManager(_:didEnd:withError:)` delegate callback.
+    private func tearDownCastSession() {
         let wasChromecastPlayback = lastPlayNowSignature != nil
         let manager = sessionManager
         if let session = manager.currentCastSession, let channel = connectSDKChannel {
