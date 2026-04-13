@@ -28,9 +28,7 @@ enum JellyfinCastServerAddressResolver {
             return absolute
         }
 
-        let loopback = isLoopbackHost(host)
-
-        if !loopback {
+        if !isLoopbackHost(host) {
             return absolute
         }
 
@@ -42,8 +40,7 @@ enum JellyfinCastServerAddressResolver {
             throw ErrorMessage(L10n.castLocalhostServerError)
         }
 
-        let resolved = local.trimmingSuffix("/")
-        return resolved
+        return local.trimmingSuffix("/")
     }
 
     private static func isLoopbackHost(_ host: String) -> Bool {
