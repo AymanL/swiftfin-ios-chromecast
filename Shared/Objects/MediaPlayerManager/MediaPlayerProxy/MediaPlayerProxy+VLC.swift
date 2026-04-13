@@ -156,9 +156,7 @@ extension VLCMediaPlayerProxy {
                 VLCVideoPlayer(configuration: vlcConfiguration(for: playbackItem))
                     .proxy(proxy)
                     .onSecondsUpdated { newSeconds, info in
-                        if let shouldRoute = MediaPlayerManager.chromecastRoutesPlaybackControls,
-                           shouldRoute()
-                        {
+                        if MediaPlayerManager.chromecastRouter?.routesPlaybackControls() == true {
                             // Local VLC stays paused while the TV decodes; its time is frozen at handoff.
                             // Do not overwrite `manager.seconds` — it is driven by Jellyfin Cast inbound progress.
                             if !isScrubbing {
@@ -199,13 +197,13 @@ extension VLCMediaPlayerProxy {
                             manager.error(ErrorMessage("VLC player is unable to perform playback"))
                         case .playing:
                             manager.proxy?.isBuffering.value = false
-                            let routesChromecastControls = MediaPlayerManager.chromecastRoutesPlaybackControls?() ?? false
+                            let routesChromecastControls = MediaPlayerManager.chromecastRouter?.routesPlaybackControls() ?? false
                             // When Cast is active, the receiver drives playback state; do not mirror Play to the receiver.
                             if !routesChromecastControls {
                                 manager.setPlaybackRequestStatus(status: .playing)
                             }
                         case .paused:
-                            let routesChromecastControls = MediaPlayerManager.chromecastRoutesPlaybackControls?() ?? false
+                            let routesChromecastControls = MediaPlayerManager.chromecastRouter?.routesPlaybackControls() ?? false
                             if !routesChromecastControls {
                                 manager.setPlaybackRequestStatus(status: .paused)
                             }

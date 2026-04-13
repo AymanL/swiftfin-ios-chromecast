@@ -108,6 +108,9 @@ struct VideoPlayerViewShim: View {
         }
         .colorScheme(.dark) // use over `preferredColorScheme(.dark)` to not have destination change
         .environment(\.safeAreaInsets, safeAreaInsets)
+        #if os(iOS)
+        .environment(\.chromecastVideoPlayerCoordinator, GoogleCastSessionCoordinator.shared)
+        #endif
         .supportedOrientations(.allButUpsideDown)
         .ignoresSafeArea()
         .persistentSystemOverlays(.hidden)

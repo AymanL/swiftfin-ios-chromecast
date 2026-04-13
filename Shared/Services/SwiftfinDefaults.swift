@@ -274,14 +274,5 @@ extension Defaults.Keys {
     }
 
     static let sendProgressReports: Key<Bool> = DebugKey("sendProgressReports", default: true)
-
-    /// Phase 1: use `ChromecastStubVideoMediaPlayerProxy` instead of VLC (DEBUG only; not for end users).
-    static let useChromecastStubVideoProxy: Key<Bool> = DebugKey("useChromecastStubVideoProxy", default: false)
-
-    /// Phase 2: use Jellyfin **unstable** Cast receiver app ID (requires app restart; DEBUG only).
-    static let useUnstableJellyfinChromecastReceiver: Key<Bool> = DebugKey(
-        "useUnstableJellyfinChromecastReceiver",
-        default: false
-    )
 }
 #endif

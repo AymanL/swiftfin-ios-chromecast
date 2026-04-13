@@ -111,7 +111,7 @@ extension VideoPlayer.PlaybackControls {
             .onReceive(
                 manager.secondsBox.$value.receive(on: DispatchQueue.main)
             ) { newSeconds in
-                guard MediaPlayerManager.chromecastRoutesPlaybackControls?() == true,
+                guard MediaPlayerManager.chromecastRouter?.routesPlaybackControls() == true,
                       !isScrubbing
                 else { return }
                 if scrubbedSecondsBox.value != newSeconds {

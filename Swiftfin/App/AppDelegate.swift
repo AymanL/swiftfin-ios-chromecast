@@ -10,10 +10,6 @@ import GoogleCast
 import PreferencesView
 import UIKit
 
-#if DEBUG
-import Defaults
-#endif
-
 class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(

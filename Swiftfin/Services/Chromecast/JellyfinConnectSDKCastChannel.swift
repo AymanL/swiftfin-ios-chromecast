@@ -22,7 +22,7 @@ final class JellyfinConnectSDKCastChannel: GCKCastChannel {
         super.didChangeWritableState(isWritable)
         guard isWritable else { return }
         Task { @MainActor in
-            await owner?.handleConnectSDKChannelBecameWritable()
+            await owner?.connectSDKChannelBecameWritable()
         }
     }
 
@@ -36,7 +36,7 @@ final class JellyfinConnectSDKCastChannel: GCKCastChannel {
     override func didDisconnect() {
         super.didDisconnect()
         Task { @MainActor in
-            owner?.handleConnectSDKChannelDisconnected()
+            owner?.connectSDKChannelDidDisconnect()
         }
     }
 }

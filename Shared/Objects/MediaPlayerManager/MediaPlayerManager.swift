@@ -49,12 +49,11 @@ import StatefulMacros
 @Stateful
 final class MediaPlayerManager: ViewModel {
 
-    // MARK: - Chromecast (iOS sender hooks; set by `GoogleCastSessionCoordinator`)
+    // MARK: - Chromecast
 
-    /// When non-nil and returns true, play/pause routes to Chromecast; local proxy stays paused to avoid dual playback.
-    static var chromecastRoutesPlaybackControls: (@MainActor () -> Bool)?
-    static var chromecastMirrorPlaybackRequest: (@MainActor (PlaybackRequestStatus) async -> Void)?
-    static var chromecastMirrorSeekToSeconds: (@MainActor (Double) async -> Void)?
+    /// Routes play/pause to the Cast receiver when a session is active.
+    /// Set by `GoogleCastSessionCoordinator` on iOS; nil on all other platforms.
+    static weak var chromecastRouter: (any ChromecastPlaybackRouting)?
 
     @CasePathable
     enum Action {
@@ -198,7 +197,7 @@ final class MediaPlayerManager: ViewModel {
             let target: PlaybackRequestStatus = paused ? .paused : .playing
             guard playbackRequestStatus != target else { return }
             playbackRequestStatus = target
-            if let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() {
+            if Self.chromecastRouter?.routesPlaybackControls() == true {
                 proxy?.pause()
             } else {
                 switch target {
@@ -228,19 +227,13 @@ final class MediaPlayerManager: ViewModel {
 
     @MainActor
     func mirrorChromecastSeekToTargetSecondsIfControlling(_ positionSeconds: Double) {
-        guard let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() else { return }
-        Task {
-            await Self.chromecastMirrorSeekToSeconds?(positionSeconds)
-        }
+        Self.chromecastRouter?.seekWhenControlling(positionSeconds: positionSeconds)
     }
 
     @MainActor
     func mirrorChromecastSeekAfterLocalJump(delta: Duration) {
-        guard let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() else { return }
         let target = max(.zero, seconds + delta).seconds
-        Task {
-            await Self.chromecastMirrorSeekToSeconds?(target)
-        }
+        Self.chromecastRouter?.seekWhenControlling(positionSeconds: target)
     }
 
     private var itemBuildTask: AnyCancellable?
@@ -351,17 +344,10 @@ final class MediaPlayerManager: ViewModel {
         if self.playbackRequestStatus != status {
             self.playbackRequestStatus = status
 
-            if let shouldRoute = Self.chromecastRoutesPlaybackControls, shouldRoute() {
-                Task {
-                    await Self.chromecastMirrorPlaybackRequest?(status)
-                }
-                switch status {
-                case .paused:
-                    proxy?.pause()
-                case .playing:
-                    // TV resumes via `Unpause`; keep local VLC paused so the phone is not a second player.
-                    proxy?.pause()
-                }
+            if let router = Self.chromecastRouter, router.routesPlaybackControls() {
+                Task { await router.mirrorPlaybackRequest(status) }
+                // Keep local VLC paused regardless of direction; TV is the only decoder.
+                proxy?.pause()
                 return
             }
 

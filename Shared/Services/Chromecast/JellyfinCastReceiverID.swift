@@ -8,16 +8,17 @@
 
 import Foundation
 
-/// Jellyfin Cast receiver application IDs (Google Cast sender discovery).
+/// Google Cast application IDs registered by the Jellyfin project with Google.
 ///
-/// Parity: `jellyfin-web` and server playback settings use the same values for
-/// stable vs unstable receivers. `Info.plist` lists `_F007D354._googlecast._tcp` and
-/// `_6F511C87._googlecast._tcp` under `NSBonjourServices` for discovery.
+/// These IDs identify which Cast receiver app runs on the Chromecast device when
+/// a session is started. The canonical source for these values is jellyfin-web
+/// (`src/plugins/chromecastPlayer/plugin.js`); the receiver itself is hosted at
+/// https://github.com/jellyfin/jellyfin-chromecast.
 enum JellyfinCastReceiverID {
 
-    /// Production Jellyfin Cast web receiver (stable channel).
+    /// Production Web Receiver — use this in release builds.
     static let stable = "F007D354"
 
-    /// Experimental receiver (unstable / master); use only when aligned with server or web client.
+    /// Development Web Receiver built from the main branch — use this for testing unreleased receiver changes.
     static let unstable = "6F511C87"
 }
